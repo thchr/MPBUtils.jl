@@ -13,11 +13,12 @@ using Requires
 
 export prepare_mpbcalc,
        prepare_mpbcalc!,
+       mpb_calcname,
+       write_lgs_to_mpb!,
        lattice_from_mpbparams,
        kvecs_from_mpbparams,
        filling2isoval,
-       isoval2filling,
-       mpb_calcname
+       isoval2filling
 
 # ---------------------------------------------------------------------------------------- #
 
