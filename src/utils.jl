@@ -1,0 +1,1 @@
+signaschar(x::Real) = signbit(x) ? '-' : '+'
