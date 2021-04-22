@@ -8,8 +8,8 @@ function load_symdata(calcname::AbstractString,
                       sgnum::IntOrNothing=nothing, D::IntOrNothing=nothing; parentdir::AbstractString="./", 
                       αβγ::AbstractVector{<:Real}=Crystalline.TEST_αβγ,
                       flip_ksign::Bool=false)
-    sgnum === nothing && (sgnum = try_parse_sgnum(calcname))
-    D === nothing && (D = try_parse_dim(calcname))
+    sgnum === nothing && (sgnum = parse_sgnum(calcname))
+    D === nothing && (D = parse_dim(calcname))
     if D < length(αβγ)
         αβγ = αβγ[Base.OneTo(D)]
     end
