@@ -21,7 +21,7 @@ function load_symdata(calcname::AbstractString,
     freqs = dispersion_data[:,6:end] 
     ordering_perms = [sortperm(freqs_at_fixed_k) for freqs_at_fixed_k in eachrow(freqs)]
     # read mpb data, mostly as Strings (first column is Int)
-    untyped_data = readdlm(parentdir*"/output/plane_group_"*"$(sgnum)/"*calcname*"-symeigs.out", ',', quotes=true)
+    untyped_data = readdlm(parentdir*calcname*"-symeigs.out", ',', quotes=true)
     Nrows = size(untyped_data, 1)
     # convert to typed format, assuming "Int, String, (ComplexF64 ...)" structure
     ops = [Vector{SymOperation{D}}() for _ in kidxs] # indexed first across KVecs, then across SymOperations
