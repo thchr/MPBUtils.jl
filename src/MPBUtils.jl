@@ -27,7 +27,7 @@ include("utils.jl")
 include("filling2isoval.jl")
 include("export2mpb.jl")
 include("read_utils.jl")
-export parse_dim, parse_sgnum, load_symdata, symdata2representation
+export parse_dim, parse_sgnum, load_symdata, symdata2representation, singlebandirreps
 
 # ---------------------------------------------------------------------------------------- #
 

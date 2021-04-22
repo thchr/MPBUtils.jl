@@ -14,7 +14,7 @@ function load_symdata(calcname::AbstractString,
         αβγ = αβγ[Base.OneTo(D)]
     end
     dispersion_data = readdlm(parentdir*calcname*"-dispersion.out", ',') 
-    kvecs = KVec.(eachrow(@view dispersion_data[:,2:2+(D-1)])) ##No longer works? for new version of Crystalline
+    kvecs = KVec.(eachrow(@view dispersion_data[:,2:2+(D-1)])) 
     kidxs = eachindex(kvecs)
     Nk = length(kidxs)
 
@@ -121,12 +121,24 @@ end
 
 """
 $(TYPEDSIGNATURES)
+Returns the irreps of a single band in the order of kvectors supplied in the MPB calculation. 
 """
 function singlebandirreps(calcname::AbstractString, bandidx::Integer; parentdir::AbstractString="./")
-    symdata2representation(calcname, bandidx, parentdir)
-    msvec_int = [convert.(Int, round.(ms, digits=3)) for ms in msvec]
-    n = vcat(msvec_int...)
-    irlabs = formatirreplabel.(label.(Iterators.flatten(lgirsvec)))
+    irrepsofband = Vector{Vector{String}}()
+    msvec, lgirsvec = symdata2representation(calcname, bandidx:bandidx, parentdir=parentdir)
+    irreplabels = [label.(lgirsatk) for lgirsatk in lgirsvec]
+    for (index, (ms, lgirs, irreplabel)) in enumerate(zip(msvec, lgirsvec, irreplabels))
+        try 
+            msint = Int.(round.(ms, digits=3))
+            @assert length(msint) == length(lgirs)
+            push!(irrepsofband, irreplabel[findall(x->!(x≈0), msint)])
+        catch e
+            println("Likely found fractional index")
+            fractional_indices = findall(x-> !isinteger(round(x, digits=3)), ms)
+            println(irreplabel[fractional_indices]...)
+        end
+    end
+    return irrepsofband
 end
 
 """
