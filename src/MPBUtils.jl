@@ -3,11 +3,12 @@ module MPBUtils
 
 using Crystalline
 using Crystalline: AbstractFourierLattice, 
-                   matching_littlegroups
+                   matching_littlegroups, constant, formatirreplabel
 using StaticArrays
 using Statistics: quantile # for `filling2isoval`
 using DocStringExtensions
 using Requires
+using DelimitedFiles
 
 # ---------------------------------------------------------------------------------------- #
 
@@ -26,7 +27,7 @@ include("utils.jl")
 include("filling2isoval.jl")
 include("export2mpb.jl")
 include("read_utils.jl")
-export parse_dim, parse_sgnum
+export parse_dim, parse_sgnum, load_symdata, symdata2representation
 
 # ---------------------------------------------------------------------------------------- #
 
