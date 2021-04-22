@@ -121,6 +121,16 @@ end
 
 """
 $(TYPEDSIGNATURES)
+"""
+function singlebandirreps(calcname::AbstractString, bandidx::Integer; parentdir::AbstractString="./")
+    symdata2representation(calcname, bandidx, parentdir)
+    msvec_int = [convert.(Int, round.(ms, digits=3)) for ms in msvec]
+    n = vcat(msvec_int...)
+    irlabs = formatirreplabel.(label.(Iterators.flatten(lgirsvec)))
+end
+
+"""
+$(TYPEDSIGNATURES)
 Return the spacegroup index of an MPB calculation by conventions set by mpb_calcname
 """
 function parse_sgnum(calcname::AbstractString)

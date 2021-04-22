@@ -1,3 +1,5 @@
 Manifest.toml
 */Manifest.toml
 .DS_Store
+*.out
+*/*.out
