@@ -50,6 +50,27 @@ function load_symdata(calcname::AbstractString,
     return lgs, symeigs
 end
 
+function find_degeneracies(calcname::String; dir::String="./")
+    dispersion_data = readdlm(dir*calcname*"-dispersion.out", ',') 
+    D=2
+    _, numbands = size(dispersion_data[:,6:end])
+    possible_degeneracies = Vector{Vector{Vector{Integer}}}()
+    for kvfreq in eachrow(dispersion_data[:,6:end])
+        possible_degeneraciesk = Vector{Vector{Integer}}()
+        rounded_freqs = round.(kvfreq, digits=3)
+        unique_freqs = unique(rounded_freqs)
+        for (index, uniquefreq) in enumerate(unique_freqs)
+            atuniquefreq = Vector{Integer}()
+            for i in 1:numbands
+                rounded_freqs[i] ≈ uniquefreq ? push!(atuniquefreq, i) : nothing
+            end
+            length(atuniquefreq)>1 ? push!(possible_degeneraciesk, atuniquefreq) : nothing
+        end
+        push!(possible_degeneracies, possible_degeneraciesk)
+    end
+    return possible_degeneracies
+end
+
 """
 $(TYPEDSIGNATURES)
 Load a symmetry data associated with `calcname` and compute the associated irrep for bands
@@ -131,10 +152,15 @@ function singlebandirreps(calcname::AbstractString, bandidx::Integer; parentdir:
         try 
             msint = Int.(round.(ms, digits=3))
             @assert length(msint) == length(lgirs)
+            @assert length(msint) == length(irreplabel)
             push!(irrepsofband, irreplabel[findall(x->!(x≈0), msint)])
-        catch e
-            println("Likely found fractional index")
+        catch InexactError
+            println("Likely found fractional index- checking for degeneracies")
+            degeneratevec = find_degeneracies(calcname, dir=parentdir)[index]
             fractional_indices = findall(x-> !isinteger(round(x, digits=3)), ms)
+            degeneratebands = degeneratevec[(findfirst(x->x>0, bandidx .∈ degeneratevec))]
+            msint = round.(symdata2representation(calcname, degeneratebands)[1][index], digits=3)
+            push!(irrepsofband, irreplabel[findall(x->!(x≈0), msint)])
             println(irreplabel[fractional_indices]...)
         end
     end
