@@ -1,6 +1,6 @@
 using Crystalline
 using MPBUtils
-write_dir = (@__DIR__)*"/input/" # NB: make sure a directory like this actually exists
+write_dir = (@__DIR__)*"" # NB: make sure whatever directory this points to actually exists
 
 function init_lattice(sgnum, Dᵛ::Val{D}, cntr::Char;
                 maxGs=ntuple(_->2, Val(D)), expon::Real=1.25) where D
@@ -30,7 +30,7 @@ lgs  = Crystalline.matching_littlegroups(brs, Val(D))
 plgs = primitivize.(lgs, #=modw=# false)
 
 # --- generate a bunch of mpb-input files ---
-ids = 1:100 # create 100 different lattices and "input-files"
+ids = 1:10 # create 10 different lattices and "input-files"
 runtype = "all" # we don't have TE/TM in 3D; do all polarizations
 for id in ids
     # direct basis
@@ -46,7 +46,7 @@ for id in ids
     epsout = 1.0
 
     # write to .sh file for mpb
-    filename = Crystalline.mpb_calcname(D, sgnum, id, res, runtype)
+    filename = mpb_calcname(D, sgnum, id, res, runtype)
     filepath = joinpath(write_dir, filename*".sh")
     write_to_file || continue
     open(filepath, "w") do io
@@ -56,5 +56,6 @@ for id in ids
         #     instead of `lgs` in the above. You can also supply a filename for `kvecs` if
         #     you want.
     end
-    println("MPB setup files written to:\n" : "", "  ∙  ", filepath, ".sh")
+    id == 1 && println("MPB setup files written to:")
+    println("  ∙  ", filepath, ".sh")
 end
