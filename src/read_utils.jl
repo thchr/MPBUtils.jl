@@ -50,6 +50,7 @@ function load_symdata(calcname::AbstractString,
     return lgs, symeigs
 end
 
+
 function find_degeneracies(calcname::String; dir::String="./")
     dispersion_data = readdlm(dir*calcname*"-dispersion.out", ',') 
     D=2
@@ -123,6 +124,32 @@ function symdata2representation(calcname::AbstractString, bandidxs::AbstractVect
         αβγ = αβγ[Base.OneTo(D)]
     end
     lgs, symeigs = load_symdata(calcname, sgnum, D; parentdir=parentdir, αβγ=αβγ, flip_ksign=flip_ksign)
+    if lgidxs !== nothing # possibly only look at a subset of all the little groups
+        symeigs = symeigs[lgidxs]
+        lgs     = lgs[lgidxs]
+    end
+    lgirsd = get_lgirreps(sgnum, D)
+    lgirsvec = [lgirsd[klabel(lg)] for lg in lgs]
+    timereversal && (lgirsvec .= realify.(lgirsvec))
+    # check: operator sorting and values are consistent across lgs and lgirsvec
+    lgs′ = group.(first.(lgirsvec))
+    isprimitive && lgs′ .= primitivize.(lgs′, #=modw=#false)
+    @assert lgs == lgs′
+    # compute matching irreps at each k-point, i.e. the symmetry vector
+    symvals = map(kidx->sum.(getindex.(symeigs[kidx], Ref(bandidxs))), eachindex(lgs))
+    msvec   = map(kidx->find_representation(symvals[kidx], lgirsvec[kidx], αβγ, Float64; atol=atol), eachindex(lgs))
+    return msvec, lgirsvec
+end
+
+
+function symdata2representation(lgs::Array{LittleGroup{D},1}, symeigs::Vector{<:Vector{<:Vector{<:Complex{Float64}}}}, bandidxs::AbstractVector=1:2,
+    timereversal::Bool=true, isprimitive::Bool=true, 
+    atol::Float64=Crystalline.DEFAULT_ATOL,
+    αβγ::AbstractVector{<:Real}=Crystalline.TEST_αβγ,
+    lgidxs::Union{Nothing, AbstractVector{<:Integer}}=nothing) where D
+
+    sgnum = first(lgs).num 
+    println("Dimension is ", D)
     if lgidxs !== nothing # possibly only look at a subset of all the little groups
         symeigs = symeigs[lgidxs]
         lgs     = lgs[lgidxs]
