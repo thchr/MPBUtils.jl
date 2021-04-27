@@ -5,7 +5,7 @@ const IntOrNothing = Union{Int, Nothing}
 $(TYPEDSIGNATURES)
 """
 function load_symdata(calcname::AbstractString, 
-                      sgnum::IntOrNothing=nothing, D::IntOrNothing=nothing; parentdir::AbstractString="./", 
+                      sgnum::IntOrNothing=nothing, D::IntOrNothing=nothing; dir::AbstractString="./", 
                       αβγ::AbstractVector{<:Real}=TEST_αβγ,
                       flip_ksign::Bool=false)
     sgnum === nothing && (sgnum = parse_sgnum(calcname))
@@ -13,7 +13,7 @@ function load_symdata(calcname::AbstractString,
     if D < length(αβγ)
         αβγ = αβγ[Base.OneTo(D)]
     end
-    dispersion_data = readdlm(parentdir*calcname*"-dispersion.out", ',') 
+    dispersion_data = readdlm(dir*calcname*"-dispersion.out", ',') 
     kvecs = KVec.(eachrow(@view dispersion_data[:,2:2+(D-1)])) 
     kidxs = eachindex(kvecs)
     Nk = length(kidxs)
@@ -21,7 +21,7 @@ function load_symdata(calcname::AbstractString,
     freqs = dispersion_data[:,6:end] 
     ordering_perms = [sortperm(freqs_at_fixed_k) for freqs_at_fixed_k in eachrow(freqs)]
     # read mpb data, mostly as Strings (first column is Int)
-    untyped_data = readdlm(parentdir*calcname*"-symeigs.out", ',', quotes=true)
+    untyped_data = readdlm(dir*calcname*"-symeigs.out", ',', quotes=true)
     Nrows = size(untyped_data, 1)
     # convert to typed format, assuming "Int, String, (ComplexF64 ...)" structure
     ops = [Vector{SymOperation{D}}() for _ in kidxs] # indexed first across KVecs, then across SymOperations
@@ -113,7 +113,7 @@ Prints: `[Γ₂⁺+Γ₄⁺, T₁, Y₂⁺+Y₂⁻, Z₂, R₁, S₁]`.
 **Note:** Γ irreps are not well-defined in this example (as they touch ``ω = 0``).
 """
 function symdata2representation(calcname::AbstractString, bandidxs::AbstractVector=1:2,
-            sgnum::IntOrNothing=nothing, D::IntOrNothing=nothing; parentdir::AbstractString="./", 
+            sgnum::IntOrNothing=nothing, D::IntOrNothing=nothing; dir::AbstractString="./", 
             timereversal::Bool=true, isprimitive::Bool=true, 
             atol::Float64=DEFAULT_ATOL,
             αβγ::AbstractVector{<:Real}=TEST_αβγ,
@@ -124,7 +124,7 @@ function symdata2representation(calcname::AbstractString, bandidxs::AbstractVect
     if D < length(αβγ)
         αβγ = αβγ[Base.OneTo(D)]
     end
-    lgs, symeigs = load_symdata(calcname, sgnum, D; parentdir=parentdir, αβγ=αβγ, flip_ksign=flip_ksign)
+    lgs, symeigs = load_symdata(calcname, sgnum, D; dir=dir, αβγ=αβγ, flip_ksign=flip_ksign)
     if lgidxs !== nothing # possibly only look at a subset of all the little groups
         symeigs = symeigs[lgidxs]
         lgs     = lgs[lgidxs]
@@ -188,13 +188,22 @@ function symdata2representation(lg::LittleGroup{D}, symeig::Vector{<:Vector{<:Co
     return msvec, lgir
 end
 
+function symdata2representation(lg::LittleGroup{D}, symeig::Vector{<:Vector{<:Complex{Float64}}}, bandidx::Integer= 1,
+    timereversal::Bool=true, isprimitive::Bool=true, 
+    atol::Float64=DEFAULT_ATOL,
+    αβγ::AbstractVector{<:Real}=TEST_αβγ) where D 
+    symdata2representation(lg, symeig, bandidx:bandidx, timereversal, isprimitive, atol, αβγ)
+end
+
+
+
 """
 $(TYPEDSIGNATURES)
 Returns the irreps of a single band in the order of kvectors supplied in the MPB calculation. 
 """
-function singlebandirreps(calcname::AbstractString, bandidx::Integer; parentdir::AbstractString="./")
+function singlebandirreps(calcname::AbstractString, bandidx::Integer; dir::AbstractString="./")
     irrepsofband = Vector{Vector{String}}()
-    msvec, lgirsvec = symdata2representation(calcname, bandidx:bandidx, parentdir=parentdir)
+    msvec, lgirsvec = symdata2representation(calcname, bandidx:bandidx, dir=dir)
     irreplabels = [label.(lgirsatk) for lgirsatk in lgirsvec]
     for (index, (ms, lgirs, irreplabel)) in enumerate(zip(msvec, lgirsvec, irreplabels))
         try 
@@ -204,7 +213,7 @@ function singlebandirreps(calcname::AbstractString, bandidx::Integer; parentdir:
             push!(irrepsofband, irreplabel[findall(x->!(x≈0), msint)])
         catch InexactError
             println("Likely found fractional index- checking for degeneracies")
-            degeneratevec = find_degeneracies(calcname, dir=parentdir)[index]
+            degeneratevec = find_degeneracies(calcname, dir=dir)[index]
             fractional_indices = findall(x-> !isinteger(round(x, digits=3)), ms)
             degeneratebands = degeneratevec[(findfirst(x->x>0, bandidx .∈ degeneratevec))]
             msint = round.(symdata2representation(calcname, degeneratebands)[1][index], digits=3)
