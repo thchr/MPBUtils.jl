@@ -188,14 +188,36 @@ function symdata2representation(lg::LittleGroup{D}, symeig::Vector{<:Vector{<:Co
     return msvec, lgir
 end
 
+function symdata2representation(sgnum::Integer, D::Integer, klab::AbstractString, symeig::Vector{<:Vector{<:Complex{Float64}}}, bandidxs::AbstractVector=1:2,
+    timereversal::Bool=true, isprimitive::Bool=true, 
+    atol::Float64=DEFAULT_ATOL,
+    αβγ::AbstractVector{<:Real}=TEST_αβγ) 
+     #=
+    Only give one little group and one symeig to obtain the msvec corresponding to that particular kvector
+    =#
+    lgirsd = get_lgirreps(sgnum, D)
+    lgir = lgirsd[klab] 
+    timereversal && (lgir = realify(lgir))
+    lg′ = group(first(lgir))
+    isprimitive && (lg′ = primitivize(lg′, #=modw=#false))
+    symvals = sum.(getindex.(symeig, Ref(bandidxs)))
+    msvec   = find_representation(symvals, lgir, αβγ, Float64; atol=atol)
+    return msvec, lgir
+end
+
+function symdata2representation(sgnum::Integer, D::Integer, klab::AbstractString, symeig::Vector{<:Vector{<:Complex{Float64}}}, bandidx::Integer= 1,
+    timereversal::Bool=true, isprimitive::Bool=true, 
+    atol::Float64=DEFAULT_ATOL,
+    αβγ::AbstractVector{<:Real}=TEST_αβγ) 
+    symdata2representation(sgnum, D, klab, symeig, bandidx:bandidx, timereversal, isprimitive, atol, αβγ)
+end
+
 function symdata2representation(lg::LittleGroup{D}, symeig::Vector{<:Vector{<:Complex{Float64}}}, bandidx::Integer= 1,
     timereversal::Bool=true, isprimitive::Bool=true, 
     atol::Float64=DEFAULT_ATOL,
     αβγ::AbstractVector{<:Real}=TEST_αβγ) where D 
     symdata2representation(lg, symeig, bandidx:bandidx, timereversal, isprimitive, atol, αβγ)
 end
-
-
 
 """
 $(TYPEDSIGNATURES)
