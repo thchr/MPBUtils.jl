@@ -89,7 +89,7 @@ and dimension from `calcname`.
   default)
 - `αβγ`: value used for pinning the little groups of lines, planes, and volumes to a
   concrete k-vector. *Must* be identical to that used in setting up the calculation (e.g.,
-  as in Crystalline's `write_lgs_to_mpb`, where it defaults to `Crystalline.TEST_αβγ` as it
+  as in `write_lgs_to_mpb`, where it defaults to `Crystalline.TEST_αβγ` as it
   also does here).
   This setting is immaterial for "special" little groups, i.e. little groups without free
   k-vector parameters.
