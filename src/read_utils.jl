@@ -74,9 +74,11 @@ end
 
 """
 $(TYPEDSIGNATURES)
-Load a symmetry data associated with `calcname` and compute the associated irrep for bands
-summed over `bandidxs`. If not supplied explicitly via `sgnum` and `D`, the space group number and dimension
-will be attempted to be inferred from the `calcname`.
+
+Return the symmetry data associated with `calcname` and the associated `LGIrrep`s for bands
+summed over `bandidxs`.
+If not supplied explicitly via `sgnum` and `D`, the method will attempt to infer the space group number
+and dimension from `calcname`.
 
 # Keyword arguments
 - `timereversal`: whether to use real (`true`, default) or complex irreps (`false`).
