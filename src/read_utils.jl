@@ -97,6 +97,7 @@ and dimension from `calcname`.
 # Example
 ```julia-repl
 using Crystalline: prettyprint_symmetryvector, formatirreplabel
+using MPBUtils
 
 calcname  = "dim3-sg68-symeigs_15-res32"
 bandidxs  = 1:2
