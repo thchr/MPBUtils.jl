@@ -107,9 +107,7 @@ prettyprint_symmetryvector(stdout, n, irlabs)
 ```
 Prints: `[Γ₂⁺+Γ₄⁺, T₁, Y₂⁺+Y₂⁻, Z₂, R₁, S₁]`.
 
-**Note:** Γ irreps are not well-defined in this example (as they touch ``ω = 0``): apart
-from these Γ irreps, this SG 68 case matches the prediction from `PhotonicBandConnectivity`,
-which only has one solution, namely `[-Γ₁⁺+Γ₂⁻+Γ₃⁻+Γ₄⁻, T₁, Y₂⁺+Y₂⁻, Z₂, R₁, S₁]`
+**Note:** Γ irreps are not well-defined in this example (as they touch ``ω = 0``).
 """
 function symdata2representation(calcname::AbstractString, bandidxs::AbstractVector=1:2,
             sgnum::IntOrNothing=nothing, D::IntOrNothing=nothing; parentdir::AbstractString="./", 
