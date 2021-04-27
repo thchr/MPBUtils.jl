@@ -168,6 +168,26 @@ function symdata2representation(lgs::Array{LittleGroup{D},1}, symeigs::Vector{<:
     return msvec, lgirsvec
 end
 
+function symdata2representation(lg::LittleGroup{D}, symeig::Vector{<:Vector{<:Complex{Float64}}}, bandidxs::AbstractVector=1:2,
+    #=
+    Only give one little group and one symeig to obtain the msvec corresponding to that particular kvector
+    =#
+    timereversal::Bool=true, isprimitive::Bool=true, 
+    atol::Float64=Crystalline.DEFAULT_ATOL,
+    αβγ::AbstractVector{<:Real}=Crystalline.TEST_αβγ) where D
+    sgnum = lg.num
+    lgirsd = get_lgirreps(sgnum, D)
+    lgir = lgirsd[klabel(lg)] 
+    timereversal && (lgir = realify(lgir))
+    # check: operator sorting and values are consistent across lgs and lgirsvec
+    lg′ = group(first(lgir))
+    isprimitive && (lg′ = primitivize(lg′, #=modw=#false))
+    @assert lg == lg′
+    symvals = sum.(getindex.(symeig, Ref(bandidxs)))
+    msvec   = find_representation(symvals, lgir, αβγ, Float64; atol=atol)
+    return msvec, lgir
+end
+
 """
 $(TYPEDSIGNATURES)
 Returns the irreps of a single band in the order of kvectors supplied in the MPB calculation. 
