@@ -2,6 +2,7 @@ module MPBUtils
 # ---------------------------------------------------------------------------------------- #
 
 using Crystalline
+using Crystalline: TEST_αβγ, DEFAULT_ATOL
 using Crystalline: AbstractFourierLattice, 
                    matching_littlegroups, constant, formatirreplabel
 using StaticArrays

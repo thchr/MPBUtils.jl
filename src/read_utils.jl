@@ -6,7 +6,7 @@ $(TYPEDSIGNATURES)
 """
 function load_symdata(calcname::AbstractString, 
                       sgnum::IntOrNothing=nothing, D::IntOrNothing=nothing; parentdir::AbstractString="./", 
-                      αβγ::AbstractVector{<:Real}=Crystalline.TEST_αβγ,
+                      αβγ::AbstractVector{<:Real}=TEST_αβγ,
                       flip_ksign::Bool=false)
     sgnum === nothing && (sgnum = parse_sgnum(calcname))
     D === nothing && (D = parse_dim(calcname))
@@ -115,8 +115,8 @@ Prints: `[Γ₂⁺+Γ₄⁺, T₁, Y₂⁺+Y₂⁻, Z₂, R₁, S₁]`.
 function symdata2representation(calcname::AbstractString, bandidxs::AbstractVector=1:2,
             sgnum::IntOrNothing=nothing, D::IntOrNothing=nothing; parentdir::AbstractString="./", 
             timereversal::Bool=true, isprimitive::Bool=true, 
-            atol::Float64=Crystalline.DEFAULT_ATOL,
-            αβγ::AbstractVector{<:Real}=Crystalline.TEST_αβγ,
+            atol::Float64=DEFAULT_ATOL,
+            αβγ::AbstractVector{<:Real}=TEST_αβγ,
             lgidxs::Union{Nothing, AbstractVector{<:Integer}}=nothing,
             flip_ksign::Bool=false)
     sgnum === nothing && (sgnum = parse_sgnum(calcname))
@@ -145,8 +145,8 @@ end
 
 function symdata2representation(lgs::Array{LittleGroup{D},1}, symeigs::Vector{<:Vector{<:Vector{<:Complex{Float64}}}}, bandidxs::AbstractVector=1:2,
     timereversal::Bool=true, isprimitive::Bool=true, 
-    atol::Float64=Crystalline.DEFAULT_ATOL,
-    αβγ::AbstractVector{<:Real}=Crystalline.TEST_αβγ,
+    atol::Float64=DEFAULT_ATOL,
+    αβγ::AbstractVector{<:Real}=TEST_αβγ,
     lgidxs::Union{Nothing, AbstractVector{<:Integer}}=nothing) where D
 
     sgnum = first(lgs).num 
@@ -169,12 +169,12 @@ function symdata2representation(lgs::Array{LittleGroup{D},1}, symeigs::Vector{<:
 end
 
 function symdata2representation(lg::LittleGroup{D}, symeig::Vector{<:Vector{<:Complex{Float64}}}, bandidxs::AbstractVector=1:2,
-    #=
+    timereversal::Bool=true, isprimitive::Bool=true, 
+    atol::Float64=DEFAULT_ATOL,
+    αβγ::AbstractVector{<:Real}=TEST_αβγ) where D
+     #=
     Only give one little group and one symeig to obtain the msvec corresponding to that particular kvector
     =#
-    timereversal::Bool=true, isprimitive::Bool=true, 
-    atol::Float64=Crystalline.DEFAULT_ATOL,
-    αβγ::AbstractVector{<:Real}=Crystalline.TEST_αβγ) where D
     sgnum = lg.num
     lgirsd = get_lgirreps(sgnum, D)
     lgir = lgirsd[klabel(lg)] 
