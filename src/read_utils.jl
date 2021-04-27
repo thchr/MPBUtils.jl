@@ -17,7 +17,6 @@ function load_symdata(calcname::AbstractString,
     kvecs = KVec.(eachrow(@view dispersion_data[:,2:2+(D-1)])) 
     kidxs = eachindex(kvecs)
     Nk = length(kidxs)
-
     freqs = dispersion_data[:,6:end] 
     ordering_perms = [sortperm(freqs_at_fixed_k) for freqs_at_fixed_k in eachrow(freqs)]
     # read mpb data, mostly as Strings (first column is Int)
@@ -47,9 +46,8 @@ function load_symdata(calcname::AbstractString,
     end
     klabs = klabel.(getindex.(Ref(lgs⁰), idxs⁰))
     lgs = [LittleGroup{D}(sgnum, kvecs[kidx], klabs[kidx], ops[kidx]) for kidx in kidxs]
-    return lgs, symeigs
+    return kvecs, lgs, symeigs
 end
-
 
 function find_degeneracies(calcname::String; dir::String="./")
     dispersion_data = readdlm(dir*calcname*"-dispersion.out", ',') 
@@ -142,13 +140,11 @@ function symdata2representation(calcname::AbstractString, bandidxs::AbstractVect
     return msvec, lgirsvec
 end
 
-
 function symdata2representation(lgs::Array{LittleGroup{D},1}, symeigs::Vector{<:Vector{<:Vector{<:Complex{Float64}}}}, bandidxs::AbstractVector=1:2,
     timereversal::Bool=true, isprimitive::Bool=true, 
     atol::Float64=DEFAULT_ATOL,
     αβγ::AbstractVector{<:Real}=TEST_αβγ,
     lgidxs::Union{Nothing, AbstractVector{<:Integer}}=nothing) where D
-
     sgnum = first(lgs).num 
     println("Dimension is ", D)
     if lgidxs !== nothing # possibly only look at a subset of all the little groups
@@ -166,6 +162,25 @@ function symdata2representation(lgs::Array{LittleGroup{D},1}, symeigs::Vector{<:
     symvals = map(kidx->sum.(getindex.(symeigs[kidx], Ref(bandidxs))), eachindex(lgs))
     msvec   = map(kidx->find_representation(symvals[kidx], lgirsvec[kidx], αβγ, Float64; atol=atol), eachindex(lgs))
     return msvec, lgirsvec
+end
+
+function symdata2representation(kv::KVec{D}, lgs::Array{LittleGroup{D},1}, symeigs::Vector{<:Vector{<:Vector{<:Complex{Float64}}}}, bandidxs::AbstractVector=1:2,
+    timereversal::Bool=true, isprimitive::Bool=true, 
+    atol::Float64=DEFAULT_ATOL,
+    αβγ::AbstractVector{<:Real}=TEST_αβγ) where D
+    idx = findfirst(lg -> kvec(lg) == kv, lgs)
+    lg = lgs[idx]
+    symeig = symeigs[idx]
+    println(typeof(lg))
+    println(typeof(symeig))
+    return symdata2representation(lg, symeig, bandidxs,timereversal, isprimitive, atol, αβγ)
+end
+
+function symdata2representation(kv::KVec{D}, lgs::Array{LittleGroup{D},1}, symeigs::Vector{<:Vector{<:Vector{<:Complex{Float64}}}}, bandidx::Integer,
+    timereversal::Bool=true, isprimitive::Bool=true, 
+    atol::Float64=DEFAULT_ATOL,
+    αβγ::AbstractVector{<:Real}=TEST_αβγ) where D
+    return symdata2representation(kv, lgs, symeigs, bandidx:bandidx, timereversal, isprimitive, atol, αβγ)
 end
 
 function symdata2representation(lg::LittleGroup{D}, symeig::Vector{<:Vector{<:Complex{Float64}}}, bandidxs::AbstractVector=1:2,
