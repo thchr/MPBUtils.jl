@@ -234,7 +234,7 @@ function symdata2representation(lg::LittleGroup{D}, symeig::Vector{<:Vector{<:Co
     symdata2representation(lg, symeig, bandidx:bandidx, timereversal, isprimitive, atol, αβγ)
 end
 
-function integerrepresentations(kv::KVec{D}, lgs::Array{LittleGroup{D},1}, symeigs::Vector{<:Vector{<:Vector{<:Complex{Float64}}}},
+function integerrepresentations(kv::KVec{D}, lgs::Array{LittleGroup{D},1}, symeigs::Vector{<:Vector{<:Vector{<:Complex{Float64}}}}, nbands::Integer,
     timereversal::Bool=true, isprimitive::Bool=true, 
     atol::Float64=DEFAULT_ATOL,
     αβγ::AbstractVector{<:Real}=TEST_αβγ) where D
@@ -242,8 +242,8 @@ function integerrepresentations(kv::KVec{D}, lgs::Array{LittleGroup{D},1}, symei
     irrepdict = Dict{String, Vector{Tuple{Int64, Int64, Int64}}}()
     for (index, label) in enumerate(labels)
         symdatatuples = Vector{Tuple{Int64, Int64, Int64}}()
-        for i in 1:20
-            for j in i:20
+        for i in 1:nbands
+            for j in i:nbands
                 try
                 symdat = round(symdata2representation(kv, lgs, symeigs, i:j, timereversal, isprimitive, atol, αβγ)[1][index], digits=3)
                 push!(symdatatuples, (i, j, Integer(symdat)) )
@@ -252,7 +252,7 @@ function integerrepresentations(kv::KVec{D}, lgs::Array{LittleGroup{D},1}, symei
             end
         end
         Alltuples = Vector{Tuple{Int64, Int64, Int64}}()
-        for bandidx in 1:20
+        for bandidx in 1:nbands
             FilteredTuples = filter(x->x[2]>=bandidx && x[1]<=bandidx, symdatatuples)
             diffs = Int[]
             for tupleirrep in FilteredTuples
