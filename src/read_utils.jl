@@ -234,6 +234,39 @@ function symdata2representation(lg::LittleGroup{D}, symeig::Vector{<:Vector{<:Co
     symdata2representation(lg, symeig, bandidx:bandidx, timereversal, isprimitive, atol, αβγ)
 end
 
+function integerrepresentations(kv::KVec{D}, lgs::Array{LittleGroup{D},1}, symeigs::Vector{<:Vector{<:Vector{<:Complex{Float64}}}},
+    timereversal::Bool=true, isprimitive::Bool=true, 
+    atol::Float64=DEFAULT_ATOL,
+    αβγ::AbstractVector{<:Real}=TEST_αβγ) where D
+    labels = label.(symdata2representation(kv, lgs, symeigs, 1:1, timereversal, isprimitive, atol, αβγ)[2])
+    irrepdict = Dict{String, Vector{Tuple{Int64, Int64, Int64}}}()
+    for (index, label) in enumerate(labels)
+        symdatatuples = Vector{Tuple{Int64, Int64, Int64}}()
+        for i in 1:20
+            for j in i:20
+                try
+                symdat = round(symdata2representation(kv, lgs, symeigs, i:j, timereversal, isprimitive, atol, αβγ)[1][index], digits=3)
+                push!(symdatatuples, (i, j, Integer(symdat)) )
+                catch
+                end
+            end
+        end
+        Alltuples = Vector{Tuple{Int64, Int64, Int64}}()
+        for bandidx in 1:20
+            FilteredTuples = filter(x->x[2]>=bandidx && x[1]<=bandidx, symdatatuples)
+            diffs = Int[]
+            for tupleirrep in FilteredTuples
+                push!(diffs, abs(tupleirrep[2]-tupleirrep[1]))
+            end
+            push!(Alltuples, getindex(FilteredTuples, argmin(diffs)))
+        end
+        filter!(x->x[3]!=0, Alltuples)
+        unique!(Alltuples)
+        push!(irrepdict, label => Alltuples)
+    end
+    return irrepdict
+end
+
 """
 $(TYPEDSIGNATURES)
 Returns the irreps of a single band in the order of kvectors supplied in the MPB calculation. 
