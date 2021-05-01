@@ -312,7 +312,7 @@ function find_individual_multiplicities(symeigsd::Dict{String,<:AbstractVector},
         start = stop = get(latestarts, klab, 1)
         while stop ≤ Nbands
             bands = start:stop
-            n = symdata2irreps(symeigs, lgirs, bands; atol, αβγ)
+            n = symeigs2irreps(symeigs, lgirs, bands; atol, αβγ)
             if n !== nothing
                 idxs = findall(>(atol), n)
                 if length(idxs) ≠ 1
