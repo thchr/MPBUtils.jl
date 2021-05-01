@@ -1,20 +1,425 @@
+using DelimitedFiles
+
+# ---------------------------------------------------------------------------------------- #
+
 """
 $(TYPEDSIGNATURES)
-Return the spacegroup index of an MPB calculation by conventions set by mpb_calcname
+
+Return the symmetry eigenvalues and little groups as **k**-label indexed `Dict`s for
+an MPB symmetry calculation with ID `calcname`.
+
+## Keyword arguments
+- `sgnum`, `dir`: If unspecified (or `nothing`), the space group number and dimension must
+  be inferrable from `calcname` (`calcname` must then follow the conventions of
+  [`mpb_calcname`](@ref)).
+- `dir` (default, `"."`): directory location where `calcname`-*.out files can be found.
+- `αβγ` (default, `$TEST_αβγ`): free-parameters used for **k**-vectors in setting up the
+  MPB calculation in [`prepare_mpbcalc`](@ref).
+- `isprimitive` (default, `true`): whether the calculation is in a primitive setting.
+- `flip_ksign` (default, `false`): flip the sign of the **k**-vector used in the MPB 
+  calculation; can be necessary to match phase conventions in Crystalline.jl.
+"""
+function read_symdata(calcname::AbstractString; 
+            sgnum::Union{Int, Nothing}=nothing,
+            D::Union{Int, Nothing}=nothing,
+            dir::AbstractString=".", 
+            αβγ::AbstractVector{<:Real}=TEST_αβγ,
+            isprimitive::Bool=true,
+            flip_ksign::Bool=false)
+
+    sgnum === nothing && (sgnum = parse_sgnum(calcname))
+    D === nothing     && (D = parse_dim(calcname))
+    D < length(αβγ)   && (αβγ = αβγ[Base.OneTo(D)])
+
+    # prepare default little groups of associated space group
+    lgs⁰  = get_littlegroups(sgnum, Val(D))
+    isprimitive && map!(g -> primitivize(g, #=modw=# false), values(lgs⁰)) # primitivize
+
+    # read mpb dispersion data; use to guarantee frequency sorting at each k-point
+    dispersion_data = readdlm(joinpath(dir, calcname*"-dispersion.out"), ',')
+    kvs = collect(eachrow(@view dispersion_data[:,2:2+(D-1)]))
+    Nk     = length(kvs)
+    freqs = dispersion_data[:,6:end]
+    Nbands = size(freqs, 2)
+    sortidxs = [sortperm(freqs_at_fixed_k) for freqs_at_fixed_k in eachrow(freqs)]
+    # read mpb symmetry data, mostly as Strings (first column is Int)
+    untyped_data = readdlm(joinpath(dir, calcname*"-symeigs.out"), ',', quotes=true)
+    Nrows = size(untyped_data, 1)
+    # process raw symmetry & operator data
+    lgopsd   = Dict{String, Vector{SymOperation{D}}}()    # indexing: [klabel][op]
+    symeigsd = Dict{String, Vector{Vector{ComplexF64}}}() # indexing: [klabel][band][op]
+    rowidx = 1
+    for kidx in 1:Nk
+        kv = flip_ksign ? -kvs[kidx] : kvs[kidx] # `flip_ksign` is a hack to work around 
+                                                 # phase convention issues; there be dragons
+        klab = findfirst(lg->isapprox(kvec(lg)(αβγ), kv, atol=1e-6), lgs⁰)
+        klab === nothing && error("could not find matching KVec for loaded kv = $kv")
+        lgopsd[klab]   = Vector{SymOperation{D}}()
+        symeigsd[klab] = [Vector{ComplexF64}() for _ in 1:Nbands]
+        while rowidx ≤ Nrows && untyped_data[rowidx, 1] == kidx
+            op = SymOperation{D}(strip(untyped_data[rowidx, 2], '"'))
+            push!(lgopsd[klab], op)
+            # symmetry eigenvalues at `op` (and `klab`) across all bands (frequency sorted)
+            symeigs = parse.(ComplexF64, @view untyped_data[rowidx, 3:end][sortidxs[kidx]])
+            push!.(symeigsd[klab], symeigs) # broadcast over band indices
+            rowidx += 1
+        end
+    end
+    # build little groups
+    lgd = Dict(klab => LittleGroup{D}(sgnum, kvec(lgs⁰[klab]), klab, ops) for (klab, ops) in lgopsd)
+
+    return symeigsd, lgd
+end
+
+# ---------------------------------------------------------------------------------------- #
+
+
+function symeigs2irreps(symeigs::AbstractVector, lgirs::Vector{LGIrrep{D}}, bands;
+            atol::Real=DEFAULT_ATOL, αβγ::AbstractVector{<:Real}=TEST_αβγ) where D
+                                                                        # ... root accessor
+    D < length(αβγ) && (αβγ = αβγ[Base.OneTo(D)])
+    
+    # return multiplicities over provided irreps (and across `bands`)
+    symeigs_bands = sum(@view symeigs[bands])
+    return find_representation(symeigs_bands, lgirs, αβγ, Float64, atol=atol)
+end
+
+"""
+$(TYPEDSIGNATURES) --> Dict{String, Union{Nothing, Vector{Float64}}}
+
+Return the irrep multiplicities for provided symmetry eigenvalues `symeigsd` with associated
+little group irreps `lgirsd`, with symmetry eigenvalues aggregated (i.e. summed) over the 
+band-indices in `bands`.
+
+`symeigsd` and `lgirsd` must be `Dict`s referencing the same **k**-points and assuming the 
+same operator sorting (and setting).
+
+Result is returned as a `Dict` over **k**-labels. If the eigenvalues at this **k**-point are
+expandable in the irreps in `lgirsd`, the `Dict` value is a vector of multiplicities.
+If not (e.g., due to `bands` "splitting" an irrep or overly tight `atol` tolerances),
+the value is `nothing`.
+
+## Keyword arguments
+- `kwargs...`: optional keyword arguments (including `atol`) forwarded to 
+  [`symeigs2irreps`](@ref) (e.g., `atol` and `αβγ`).
+
+If `bands` is unspecified, it assumes the maximal possible bandrange, as inferrable from the
+size of `symeigsd`'s elements.
+
+## Workflow
+Symmetry eigenvalues `symeigsd` and little groups `lgd` can be loaded via 
+[`read_symdata`](@ref); `lgirsd` can subsequently be generated via [`pick__lgirreps`](@ref).
+To extract the multiplicities of the first 5 bands, we then call:
+```jl
+julia> bands = 1:5
+julia> extract_multiplicities(symeigsd, lgirsd, bands)
+```
+"""
+function extract_multiplicities(symeigsd::Dict{String,<:Any}, 
+            lgirsd::Dict{String,Vector{LGIrrep{D}}},
+            bands=eachindex(first(values(symeigsd)));
+            kwargs...) where D                                  # ... main accessor
+
+    nd = Dict{String, Union{Nothing, Vector{Float64}}}()
+    for klab in keys(symeigsd)
+        nd[klab] = symeigs2irreps(symeigsd[klab], lgirsd[klab], bands; kwargs...)
+    end
+    return nd
+end
+
+"""
+$(TYPEDSIGNATURES) --> Dict{String, Union{Nothing, Vector{Float64}}}
+
+Return the irrep multiplicities for provided symmetry eigenvalues `symeigsd` with associated
+little groups `lgd`, with symmetry eigenvalues aggregated (i.e. summed) over the 
+band-indices in `bands`.
+
+`symeigsd` and `lgd` must be `Dict`s referencing the same **k**-points and assuming the 
+same operator sorting (and setting). `lgd` is used as an intermediary to determine the
+relevant little group irreps via Crystalline.
+
+Result is returned as a `Dict` over **k**-labels. If the eigenvalues at this **k**-point are
+expandable in the associated little group irreps, the `Dict` value is a vector of
+multiplicities. If not (e.g., due to `bands` "splitting" an irrep or overly tight `atol`
+tolerances), the value is `nothing`.
+
+## Keyword arguments
+- `timereversal` (default, `true`): whether the underlying MPB calculation has time-reversal
+  symmetry; if `true`, physically real irreps (coreps) will be used. See Crystalline's
+  `realify`.
+- `isprimitive` (default, `true`): whether the underlying MPB calculation was performed in a
+  primitive unit cell; if `true`, `lgd` is assumed to be provided in a primitive setting as
+  well. Used as a consistency check in constructing associated little group irreps.
+- `kwargs...`: optional keyword arguments (including `atol`) forwarded to 
+  [`symeigs2irreps`](@ref) (e.g., `atol` and `αβγ`).
+
+If `bands` is unspecified, it assumes the maximal possible bandrange, as inferrable from the
+size of `symeigsd`'s elements.
+
+## Workflow
+Given a the "base" name of an MPB calculation, `calcname`, we can extract associated
+multiplicities by:
+```jl
+julia> symeigsd, lgd = read_symdata(calcname, dir = "location/of/calcname/out/files")
+julia> extract_multiplicities(symeigsd, lgd, 1:5)
+```
+where we consider the joint multiplicities of the first 5 bands. See also 
+[`extract_individual_multiplicities`](@ref).
+"""
+function extract_multiplicities(symeigsd::Dict{String, <:Any}, 
+            lgd::Dict{String,LittleGroup{D}}, 
+            bands=eachindex(first(values(symeigsd)));
+            timereversal::Bool=true, isprimitive::Bool=true,
+            kwargs...) where D                                  # ... main accessor
+
+    if length(symeigsd) ≠ length(lgd) || !(keys(symeigsd) ⊆ keys(lgd))
+        error("`symeigsd` and `lgd` must have identical keys")
+    end
+    
+    lgirsd = pick_lgirreps(lgd; timereversal, isprimitive) # irreps for k-points in `lgd`
+
+    return extract_multiplicities(symeigsd, lgirsd, bands; kwargs...)
+end
+
+function extract_multiplicities(calcname::String, bands;
+            timereversal::Bool=true, isprimitive::Bool=true,
+            atol::Real=DEFAULT_ATOL, αβγ::AbstractVector{<:Real}=TEST_αβγ,
+            read_kwargs...)                                     # ... convenience accessor
+    
+    symeigsd, lgd = read_symdata(calcname; αβγ, isprimitive, read_kwargs...)
+    return extract_multiplicities(symeigsd, lgd, bands; timereversal, isprimitive, atol, αβγ)
+end
+
+# ---------------------------------------------------------------------------------------- #
+
+function pick_lgirreps(lgd::Dict{String, LittleGroup{D}};
+            timereversal::Bool=true, isprimitive::Bool=true) where D
+    sgnum = num(first(values(lgd)))
+    lgirsd = get_lgirreps(sgnum, Val(D))
+    # filter out k-points not in `lgd`
+    filter!(((klab,_),) -> klab ∈ keys(lgd), lgirsd)
+
+    # incorporate timereveral & primitivize if relevant
+    if timereversal
+        map!(realify, values(lgirsd))
+    end
+    if isprimitive
+        cntr = centering(sgnum, D)
+        if cntr ≠ 'P' || cntr ≠ 'p'
+            for (klab, lgirs) in lgirsd
+                # all elements in `lgirs` point to the same group, so we should only change
+                # _one_ such element - pick the first one (bit icky, yeah...)
+                lg = group(first(lgirs))
+                lg.operations .= primitivize.(lg.operations, cntr, #=modw=# false)
+            end
+        end
+    end
+
+    # ensure that `lgirsd` and `lgd` have identical operator sorting
+    for (klab, lg) in lgd
+        align_operators!(lgirsd[klab], lg) # mutates `lgirsd` if operator sorting differs
+    end
+
+    return lgirsd
+end
+
+function align_operators!(lgirs::Vector{LGIrrep{D}}, lg::LittleGroup{D}) where D
+    lg′ = group(first(lgirs))
+    lg == lg′ && return lgirs
+    length(lg) == length(lg′) || error("mismatched little groups")
+    # find permutation to "realign" operator sorting between `lgd[klab]` and `lgirsd[klab]`
+    perm = Vector{Int}(undef, length(lg))
+    for op in lg
+        idx = findfirst(==(op), lg′)
+        idx === nothing && error("could not align operators")   
+        perm[i] = idx
+    end
+    # apply permutation to `lgirs`
+    for lgir in lgirs
+        permute!.(lgir.matrices,     Ref(perm))
+        permute!.(lgir.translations, Ref(perm))
+    end
+    permute!(first(lgirs).g.operations, perm) # NB: the `group` of each `lgirs` element is 
+                        # actually the same struct, so we only permute it _once_
+                        # (admittedly, a bit iffy to rely on...)
+    @info "Permuted little group irreps to ensure aligned sorting" klab
+    return lgirs
+end
+
+# ---------------------------------------------------------------------------------------- #
+
+"""
+$(TYPEDSIGNATURES) --> bandirsd, lgirsd
+
+Return band-groupings and irrep-indices across **k**-points (`bandirsd`) and associated
+little group (`lgirsd`).
+
+To extract the associated **k**-point projected symmetry vectors of potentially separable
+bands, see [`collect_separable`](@ref).
+
+## Keyword arguments
+
+- `latestarts` (default, `Dict("Γ" => 3)`): allow user to specify that certain early bands
+  be avoided for specific **k**-points. This is mainly useful to avoid considering the two
+  singular Γ-point bands in 3D photonic crystals (which is the default behavior). To skip 
+  nothing, set to `Dict{String,Int}()`.
+- `timereversal` & `isprimitive`: forwarded to [`read_symdata`](@ref) and 
+  [`extract_multiplicities`](@ref).
+- `atol` & `αβγ`: forwarded to [`read_symdata`](@ref) and [`find_representation`](@ref).
+- `read_kwargs`: additional keyword arguments forwarded to [`read_symdata`](@ref).
+
+## Example
+
+```jl
+julia> calcname = "dim3-sg147-symeigs_6936-res32"
+julia> bandirsd, lgirsd = extract_individual_multiplicities(calcname,
+                        timereversal=true, dir = "../../mpb-ctl/output/", atol=1e-3)
+```
+The result can be pretty-printed by e.g.,:
+```
+julia> using Crystalline: formatirreplabel
+julia> irlabs = Dict(klab => formatirreplabel.(label.(lgirs)) for (klab, lgirs) in lgirsd)
+julia> Dict(klab => [bands => irlabs[klab][iridx] for (bands, iridx) in bandirs] 
+                                                        for (klab, bandirs) in bandirsd)
+```
+"""
+function extract_individual_multiplicities(calcname::String;
+            timereversal::Bool=true, isprimitive::Bool=true,
+            atol::Real=DEFAULT_ATOL, αβγ::AbstractVector{<:Real}=TEST_αβγ,
+            latestarts::Dict{String,Int}=Dict("Γ" => 3),
+            kwargs...)
+
+    symeigsd, lgd = read_symdata(calcname; αβγ, isprimitive, kwargs...)
+    lgirsd = pick_lgirreps(lgd; timereversal, isprimitive)
+
+    # determine how we can consistently group up irreps and bands across distinct k-points
+    bandirsd = find_individual_multiplicities(symeigsd, lgirsd; atol, αβγ, latestarts)
+
+    return bandirsd, lgirsd
+end
+
+function find_individual_multiplicities(symeigsd::Dict{String,<:AbstractVector},
+            lgirsd::Dict{String,Vector{LGIrrep{D}}};
+            atol::Real=DEFAULT_ATOL,
+            αβγ::AbstractVector{<:Real}=TEST_αβγ,
+            latestarts::Dict{String,Int}=Dict("Γ" => 3)) where D
+    
+    Nbands = length(first(values(symeigsd)))
+
+    bandirsd = Dict(klab => Vector{Pair{UnitRange{Int}, Int}}() for klab in keys(lgirsd))
+    for (klab, lgirs) in lgirsd
+        symeigs = symeigsd[klab]
+        start = stop = get(latestarts, klab, 1)
+        while stop ≤ Nbands
+            bands = start:stop
+            n = symdata2irreps(symeigs, lgirs, bands; atol, αβγ)
+            if n !== nothing
+                idxs = findall(>(atol), n)
+                if length(idxs) ≠ 1
+                    error("found multiple irreps in a single grouping; likely causes "  *
+                          "may include invalid symmetry data (see `start` kwarg), too " *
+                          "low `atol` kwarg, or being near an accidental degeneracy")
+                end
+                v = n[only(idxs)]
+                if abs(v - 1) < atol # ⇒ `bands` is a valid grouping at `klab`
+                    push!(bandirsd[klab], bands => only(idxs))
+                    start = stop + 1 # prepare for next band grouping
+                end               
+            end
+            stop += 1
+        end
+    end
+
+    return bandirsd
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Return the "projected" symmetry-vectors for potentially separable bands using `bandirsd`
+(see [`extract_individual_multiplicities`](@ref)) and `lgirsd` (see[`read_symdata`](@ref) 
+and [`pick_lgirreps`).
+"""
+function collect_separable(bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Int}}},
+                lgirsd::Dict{String, Vector{LGIrrep{D}}}) where D
+
+    Nbands = mapreduce(last∘first∘last, min, values(bandirsd)) # smallest "last" band-index
+    include = Dict(klab => Int[] for klab in keys(bandirsd))
+    collectibles = Vector{Tuple{UnitRange{Int}, typeof(include)}}()
+    start = stop = 1
+    while stop ≤ Nbands
+        stable = true
+        for (klab, bandirs) in bandirsd
+            idxs = include[klab]
+            for (i, (bands, iridx)) in enumerate(bandirs)
+                minband, maxband = extrema(bands)
+                minband < start && continue
+                i ∉ idxs && push!(idxs, i)
+                
+                if maxband > stop
+                    stop = maxband
+                    stable = false
+                    break
+                elseif maxband == stop
+                    break
+                end
+            end
+        end
+
+        if stable
+            push!(collectibles, (start:stop, include))
+            start = (stop += 1)
+            include = Dict(klab => Int[] for klab in keys(bandirsd))
+        end
+    end
+    
+    # create projected symmetry vectors for each, using knowledge of number of irreps in
+    # each little group
+    Nirs = Dict(klab => length(lgirs) for (klab, lgirs) in lgirsd)
+    collectible_symvecs = Vector{Dict{String, Vector{Int}}}()
+    for (bands, include) in collectibles
+        bandsyms = Dict(klab => zeros(Int, Nir) for (klab, Nir) in Nirs)
+        for (klab, idxs) in include
+            for i in idxs
+                bandsyms[klab][last(bandirsd[klab][i])] += 1
+            end
+        end
+        push!(collectible_symvecs, bandsyms)
+    end
+
+    return collectible_symvecs
+end
+
+# ---------------------------------------------------------------------------------------- #
+
+"""
+$(TYPEDSIGNATURES)
+
+Return the space group number of an MPB calculation `calcname` (in the conventions of
+[`mpb_calcname`](@ref)).
 """
 function parse_sgnum(calcname::AbstractString)
-    sgstart = findfirst("sg", calcname)[end] + 1  #Finds sg in the string, selects the last index corresponding to sg, and then selects the index after that. 
-    sgstop  = findnext(!isdigit, calcname, sgstart) - 1 
-    #equivalent to findnext(x->isdigit(x)==false, calcname, sgstart )-1 
-    sgnum   = parse(Int, calcname[sgstart:sgstop])  
-    #We find where the digits start and stop and interpret the intervening characters as an integer
+    idxs = findfirst("sg", calcname)
+    idxs === nothing && error("could not infer space group number from calcname")
+    # finds `sgnum` start & stop position in `calcname`, then pulls out `sgnum` as a string
+    sgstart = idxs[end] + 1
+    sgstop  = findnext(!isdigit, calcname, sgstart) - 1
+    sgnum_str = calcname[sgstart:sgstop]
+    
+    return parse(Int, sgnum_str)
 end
 
 """
 $(TYPEDSIGNATURES)
-Return the dimensionality of an MPB calculation by conventions set by mpb_calcname
+
+Return the dimension of an MPB calculation `calcname` (in the conventions of
+[`mpb_calcname`](@ref)).
 """
 function parse_dim(calcname::AbstractString)
-    Dstart = findfirst("dim", calcname)[end] + 1 #findfirst returns the range of characters that correspond to dim. +1 corresponds to the where the dimension is canonically set by mpb_calcname
+    idxs = findfirst("dim", calcname)
+    idxs === nothing && error("could not infer dimension from calcname")
+
+    Dstart = idxs[end] + 1
     D = parse(Int, calcname[Dstart]) # return the dimension as an integer
 end

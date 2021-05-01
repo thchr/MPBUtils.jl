@@ -3,11 +3,14 @@ module MPBUtils
 
 using Crystalline
 using Crystalline: AbstractFourierLattice, 
-                   matching_littlegroups
+                   matching_littlegroups,
+                   DEFAULT_ATOL,
+                   TEST_αβγ
 using StaticArrays
 using Statistics: quantile # for `filling2isoval`
 using DocStringExtensions
 using Requires
+using DelimitedFiles
 
 # ---------------------------------------------------------------------------------------- #
 
@@ -26,7 +29,8 @@ include("utils.jl")
 include("filling2isoval.jl")
 include("export2mpb.jl")
 include("read_utils.jl")
-export parse_dim, parse_sgnum
+export read_symdata, extract_multiplicities, extract_individual_multiplicities,
+       collect_separable, pick_lgirreps
 
 # ---------------------------------------------------------------------------------------- #
 
