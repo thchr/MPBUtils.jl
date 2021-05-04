@@ -111,7 +111,7 @@ function prepare_mpbcalc!(io::IO, sgnum::Integer, flat::AbstractFourierLattice{D
                           # kwargs
                           id=1,
                           res::Integer=32,
-                          kvecs::Union{Nothing, AbstractString, AbstractVector{<:Vector{<:Number}}}=nothing,
+                          kvecs::Union{Nothing, AbstractString, AbstractVector{<:Vector{<:Real}}}=nothing,
                           lgs::Union{Nothing, AbstractVector{LittleGroup{D}}}=nothing,
                           nbands::Union{Nothing, Integer}=nothing,
                           isoval::Union{Nothing, Real}=nothing) where D
@@ -192,7 +192,7 @@ function prepare_mpbcalc(sgnum::Integer, flat::AbstractFourierLattice{D},
                          # kwargs
                          id=1, 
                          res::Integer=32, 
-                         kvecs::Union{Nothing, AbstractVector{<:Vector{Number}}}=nothing, 
+                         kvecs::Union{Nothing, AbstractString, AbstractVector{<:Vector{<:Real}}}=nothing, 
                          lgs::Union{Nothing, AbstractVector{LittleGroup{D}}}=nothing,
                          nbands::Union{Nothing, Integer}=nothing,
                          isoval::Union{Nothing, Real}=nothing) where D
