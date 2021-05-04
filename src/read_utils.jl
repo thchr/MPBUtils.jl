@@ -29,7 +29,7 @@ function read_symdata(calcname::AbstractString;
 
     sgnum === nothing && (sgnum = parse_sgnum(calcname))
     D === nothing     && (D = parse_dim(calcname))
-    D < length(αβγ)   && (αβγ = αβγ[Base.OneTo(D)])
+    D < length(αβγ)   && (αβγ = αβγ[1:D])
 
     # prepare default little groups of associated space group
     lgs⁰  = get_littlegroups(sgnum, Val(D))
@@ -77,7 +77,7 @@ end
 function symeigs2irreps(symeigs::AbstractVector, lgirs::Vector{LGIrrep{D}}, bands;
             atol::Real=DEFAULT_ATOL, αβγ::AbstractVector{<:Real}=TEST_αβγ) where D
                                                                         # ... root accessor
-    D < length(αβγ) && (αβγ = αβγ[Base.OneTo(D)])
+    D < length(αβγ) && (αβγ = αβγ[1:D])
     
     # return multiplicities over provided irreps (and across `bands`)
     symeigs_bands = sum(@view symeigs[bands])
