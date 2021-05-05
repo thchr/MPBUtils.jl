@@ -259,10 +259,11 @@ bands, see [`collect_separable`](@ref).
 
 ## Keyword arguments
 
-- `latestarts` (default, `Dict("Γ" => 3)`): allow user to specify that certain early bands
+- `latestarts` (default, `Dict("Γ" => D)`): allow user to specify that certain early bands
   be avoided for specific **k**-points. This is mainly useful to avoid considering the two
   singular Γ-point bands in 3D photonic crystals (which is the default behavior). To skip 
-  nothing, set to `Dict{String,Int}()`.
+  nothing, set to `Dict{String,Int}()`. Defaults to the spatial dimension `D` at Γ
+  (meaning, start at band `D` and skip the first `D-1` bands at Γ).
 - `timereversal` & `isprimitive`: forwarded to [`read_symdata`](@ref) and 
   [`extract_multiplicities`](@ref).
 - `atol` & `αβγ`: forwarded to [`read_symdata`](@ref) and [`find_representation`](@ref).
@@ -275,9 +276,9 @@ julia> calcname = "dim3-sg147-symeigs_6936-res32"
 julia> bandirsd, lgirsd = extract_individual_multiplicities(calcname,
                         timereversal=true, dir = "../../mpb-ctl/output/", atol=1e-3)
 ```
-The result can be pretty-printed by e.g.,:
+The result can be pretty-printed by e.g.:
 ```
-julia> using Crystalline: formatirreplabel
+julia> using Crystalline: label, formatirreplabel
 julia> irlabs = Dict(klab => formatirreplabel.(label.(lgirs)) for (klab, lgirs) in lgirsd)
 julia> Dict(klab => [bands => irlabs[klab][iridx] for (bands, iridx) in bandirs] 
                                                         for (klab, bandirs) in bandirsd)
@@ -286,7 +287,7 @@ julia> Dict(klab => [bands => irlabs[klab][iridx] for (bands, iridx) in bandirs]
 function extract_individual_multiplicities(calcname::String;
             timereversal::Bool=true, isprimitive::Bool=true,
             atol::Real=DEFAULT_ATOL, αβγ::AbstractVector{<:Real}=TEST_αβγ,
-            latestarts::Dict{String,Int}=Dict("Γ" => 3),
+            latestarts::Dict{String,Int}=Dict("Γ" => parse_dim(calcname)),
             kwargs...)
 
     symeigsd, lgd = read_symdata(calcname; αβγ, isprimitive, kwargs...)
@@ -302,7 +303,7 @@ function find_individual_multiplicities(symeigsd::Dict{String,<:AbstractVector},
             lgirsd::Dict{String,Vector{LGIrrep{D}}};
             atol::Real=DEFAULT_ATOL,
             αβγ::AbstractVector{<:Real}=TEST_αβγ,
-            latestarts::Dict{String,Int}=Dict("Γ" => 3)) where D
+            latestarts::Dict{String,Int}=Dict("Γ" => D)) where D
     
     Nbands = length(first(values(symeigsd)))
 
