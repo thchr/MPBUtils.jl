@@ -343,19 +343,26 @@ Return the "projected" symmetry-vectors for potentially separable bands using `b
 and [`pick_lgirreps`).
 """
 function collect_separable(bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Int}}},
-                lgirsd::Dict{String, Vector{LGIrrep{D}}}) where D
+                lgirsd::Dict{String, Vector{LGIrrep{D}}};
+                latestarts::Dict{String, Int}=Dict("Γ" => D)) where D
 
     Nbands = mapreduce(last∘first∘last, min, values(bandirsd)) # smallest "last" band-index
     include = Dict(klab => Int[] for klab in keys(bandirsd))
-    collectibles = Vector{Tuple{UnitRange{Int}, typeof(include)}}()
+    collectibles_bands   = Vector{UnitRange{Int}}()
+    collectibles_include = Vector{typeof(include)}()
     start = stop = 1
     while stop ≤ Nbands
         stable = true
         for (klab, bandirs) in bandirsd
             idxs = include[klab]
-            for (i, (bands, iridx)) in enumerate(bandirs)
+            latestart = get(latestarts, klab, nothing)
+            for (i, (bands, _)) in enumerate(bandirs)
                 minband, maxband = extrema(bands)
                 minband < start && continue
+
+                if latestart !== nothing && stop < latestart && minband ≤ latestart
+                    break # allow `bands` to "not count" if `latestarts` indicates skips
+                end
                 i ∉ idxs && push!(idxs, i)
                 
                 if maxband > stop
@@ -369,7 +376,8 @@ function collect_separable(bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, In
         end
 
         if stable
-            push!(collectibles, (start:stop, include))
+            push!(collectibles_bands,   start:stop)
+            push!(collectibles_include, include)
             start = (stop += 1)
             include = Dict(klab => Int[] for klab in keys(bandirsd))
         end
@@ -377,19 +385,19 @@ function collect_separable(bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, In
     
     # create projected symmetry vectors for each, using knowledge of number of irreps in
     # each little group
-    Nirs = Dict(klab => length(lgirs) for (klab, lgirs) in lgirsd)
-    collectible_symvecs = Vector{Dict{String, Vector{Int}}}()
-    for (bands, include) in collectibles
+    Nirs = Dict(klab => length(lgirsd[klab]) for klab in keys(bandirsd))
+    collectibles_symvecs = Vector{Dict{String, Vector{Int}}}()
+    for (bands, include) in zip(collectibles_bands, collectibles_include)
         bandsyms = Dict(klab => zeros(Int, Nir) for (klab, Nir) in Nirs)
         for (klab, idxs) in include
             for i in idxs
                 bandsyms[klab][last(bandirsd[klab][i])] += 1
             end
         end
-        push!(collectible_symvecs, bandsyms)
+        push!(collectibles_symvecs, bandsyms)
     end
 
-    return collectible_symvecs
+    return collectibles_bands, collectibles_symvecs
 end
 
 # ---------------------------------------------------------------------------------------- #
