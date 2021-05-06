@@ -251,8 +251,8 @@ end
 """
 $(TYPEDSIGNATURES) --> bandirsd, lgirsd
 
-Return band-groupings and irrep-indices across **k**-points (`bandirsd`) and associated
-little group (`lgirsd`).
+Return band-groupings and **k**-projected symmetry vectors at individual **k**-points
+(`bandirsd`) and associated little group irreps (`lgirsd`).
 
 To extract the associated **k**-point projected symmetry vectors of potentially separable
 bands, see [`collect_separable`](@ref).
@@ -278,10 +278,10 @@ julia> bandirsd, lgirsd = extract_individual_multiplicities(calcname,
 ```
 The result can be pretty-printed by e.g.:
 ```
-julia> using Crystalline: label, formatirreplabel
+julia> using Crystalline: label, formatirreplabel, symvec2string
 julia> irlabs = Dict(klab => formatirreplabel.(label.(lgirs)) for (klab, lgirs) in lgirsd)
-julia> Dict(klab => [bands => irlabs[klab][iridx] for (bands, iridx) in bandirs] 
-                                                        for (klab, bandirs) in bandirsd)
+julia> Dict(klab => [bands => symvec2string(n, irlabs[klab]; braces=false)
+                     for (bands, n) in bandirs]         for (klab, bandirs) in bandirsd)
 ```
 """
 function extract_individual_multiplicities(calcname::String;
@@ -307,7 +307,7 @@ function find_individual_multiplicities(symeigsd::Dict{String,<:AbstractVector},
     
     Nbands = length(first(values(symeigsd)))
 
-    bandirsd = Dict(klab => Vector{Pair{UnitRange{Int}, Int}}() for klab in keys(lgirsd))
+    bandirsd = Dict(klab => Vector{Pair{UnitRange{Int}, Vector{Int}}}() for klab in keys(lgirsd))
     for (klab, lgirs) in lgirsd
         symeigs = symeigsd[klab]
         start = stop = get(latestarts, klab, 1)
@@ -315,16 +315,17 @@ function find_individual_multiplicities(symeigsd::Dict{String,<:AbstractVector},
             bands = start:stop
             n = symeigs2irreps(symeigs, lgirs, bands; atol, αβγ)
             if n !== nothing
-                idxs = findall(nᵢ -> nᵢ > (atol), n)# && abs(round(nᵢ) - nᵢ) < atol, n)
-                if length(idxs) > 1
-                    _throw_multiple_irrep(klab, bands, n)
-
-                elseif length(idxs) == 1 # guard against "split-up" n (e.g., n = [0.5, 0.5])
-                    v = n[only(idxs)]
-                    if abs(v - 1) < atol # ⇒ `bands` is a valid grouping at `klab`
-                        push!(bandirsd[klab], bands => only(idxs))
-                        start = stop + 1 # prepare for next band grouping
-                    end
+                idxs = findall(nᵢ -> nᵢ > atol && abs(round(nᵢ) - nᵢ) < atol, n)
+                if length(idxs) ≥ 1
+                    # `bands` makes up a valid whole-multiple irrep combination at `klab`
+                    # we emphasize that this can be a _combination_ i.e. multiple whole
+                    # irreps; this can arise in cases of near-degeneracies, where numerical
+                    # "mode-mixing" effectively spreads two irreps over two bands bands
+                    # (even if they _should_ be each in one band); in principle, this can
+                    # always be circumvented by increasing the resolution, but this is not
+                    # a practical solution in general
+                    push!(bandirsd[klab], bands => round.(Int, n))
+                    start = stop + 1 # prepare for next band grouping
                 end
             end
             stop += 1
@@ -334,19 +335,6 @@ function find_individual_multiplicities(symeigsd::Dict{String,<:AbstractVector},
     return bandirsd
 end
 
-function _throw_multiple_irrep(klab, bands, n)
-    error("found multiple (possibly partial) irreps in a single grouping; likely ",
-          "causes include invalid or imprecise symmetry data, too low `atol` kwarg, ",
-          "or being near an accidental degeneracy",
-          _summarize_error_state(klab, bands, n))
-end
-function _throw_imprecision(klab, bands, n)
-    error("search failed due to poor precision", _summarize_error_state(klab, bands, n))
-end
-function _summarize_error_state(klab, bands, n)
-    return sprint(print, "\n   k-label : ", klab, "\n   bands   : ", bands, "\n   n       : ", n)
-end
-
 """
 $(TYPEDSIGNATURES)
 
@@ -354,7 +342,7 @@ Return the "projected" symmetry-vectors for potentially separable bands using `b
 (see [`extract_individual_multiplicities`](@ref)) and `lgirsd` (see[`read_symdata`](@ref) 
 and [`pick_lgirreps`).
 """
-function collect_separable(bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Int}}},
+function collect_separable(bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Vector{Int}}}},
                 lgirsd::Dict{String, Vector{LGIrrep{D}}};
                 latestarts::Dict{String, Int}=Dict("Γ" => D)) where D
 
@@ -400,13 +388,13 @@ function collect_separable(bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, In
     Nirs = Dict(klab => length(lgirsd[klab]) for klab in keys(bandirsd))
     collectibles_symvecs = Vector{Dict{String, Vector{Int}}}()
     for (bands, include) in zip(collectibles_bands, collectibles_include)
-        bandsyms = Dict(klab => zeros(Int, Nir) for (klab, Nir) in Nirs)
+        symvecs = Dict(klab => zeros(Int, Nir) for (klab, Nir) in Nirs)
         for (klab, idxs) in include
             for i in idxs
-                bandsyms[klab][last(bandirsd[klab][i])] += 1
+                symvecs[klab] += last(bandirsd[klab][i])
             end
         end
-        push!(collectibles_symvecs, bandsyms)
+        push!(collectibles_symvecs, symvecs)
     end
 
     return collectibles_bands, collectibles_symvecs
