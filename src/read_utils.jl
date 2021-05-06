@@ -315,15 +315,17 @@ function find_individual_multiplicities(symeigsd::Dict{String,<:AbstractVector},
             bands = start:stop
             n = symeigs2irreps(symeigs, lgirs, bands; atol, αβγ)
             if n !== nothing
-                idxs = findall(>(atol), n)
-                if length(idxs) ≠ 1
+                idxs = findall(nᵢ -> nᵢ > (atol), n)# && abs(round(nᵢ) - nᵢ) < atol, n)
+                if length(idxs) > 1
                     _throw_multiple_irrep(klab, bands, n)
+
+                elseif length(idxs) == 1 # guard against "split-up" n (e.g., n = [0.5, 0.5])
+                    v = n[only(idxs)]
+                    if abs(v - 1) < atol # ⇒ `bands` is a valid grouping at `klab`
+                        push!(bandirsd[klab], bands => only(idxs))
+                        start = stop + 1 # prepare for next band grouping
+                    end
                 end
-                v = n[only(idxs)]
-                if abs(v - 1) < atol # ⇒ `bands` is a valid grouping at `klab`
-                    push!(bandirsd[klab], bands => only(idxs))
-                    start = stop + 1 # prepare for next band grouping
-                end               
             end
             stop += 1
         end
@@ -335,12 +337,15 @@ end
 function _throw_multiple_irrep(klab, bands, n)
     error("found multiple (possibly partial) irreps in a single grouping; likely ",
           "causes include invalid or imprecise symmetry data, too low `atol` kwarg, ",
-          "or being near an accidental degeneracy\n",
-          "\n   k-label : ", klab,
-          "\n   bands   : ", bands,
-          "\n   n       : ", n)
+          "or being near an accidental degeneracy",
+          _summarize_error_state(klab, bands, n))
 end
-
+function _throw_imprecision(klab, bands, n)
+    error("search failed due to poor precision", _summarize_error_state(klab, bands, n))
+end
+function _summarize_error_state(klab, bands, n)
+    return sprint(print, "\n   k-label : ", klab, "\n   bands   : ", bands, "\n   n       : ", n)
+end
 
 """
 $(TYPEDSIGNATURES)
