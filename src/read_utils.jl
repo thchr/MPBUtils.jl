@@ -317,9 +317,7 @@ function find_individual_multiplicities(symeigsd::Dict{String,<:AbstractVector},
             if n !== nothing
                 idxs = findall(>(atol), n)
                 if length(idxs) ≠ 1
-                    error("found multiple irreps in a single grouping; likely causes "  *
-                          "may include invalid symmetry data (see `start` kwarg), too " *
-                          "low `atol` kwarg, or being near an accidental degeneracy")
+                    _throw_multiple_irrep(klab, bands, n)
                 end
                 v = n[only(idxs)]
                 if abs(v - 1) < atol # ⇒ `bands` is a valid grouping at `klab`
@@ -332,6 +330,15 @@ function find_individual_multiplicities(symeigsd::Dict{String,<:AbstractVector},
     end
 
     return bandirsd
+end
+
+function _throw_multiple_irrep(klab, bands, n)
+    error("found multiple (possibly partial) irreps in a single grouping; likely ",
+          "causes include invalid or imprecise symmetry data, too low `atol` kwarg, ",
+          "or being near an accidental degeneracy\n",
+          "\n   k-label : ", klab,
+          "\n   bands   : ", bands,
+          "\n   n       : ", n)
 end
 
 
