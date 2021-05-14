@@ -15,8 +15,6 @@ calcname = "dim3-sg147-breaktr-detfix-g1.0_symeigs_"*string(id)*"-res32"
 sb, brs = compatibility_basis(sgnum, 3; timereversal=has_tr)
 B = matrix(brs, true)
 F = smith(B)
-nt_sb = nontopological_basis(F, brs)
-nontopo_M = matrix(nt_sb)
 
 # --- load and process data ---
 bandirsd, lgirsd = extract_individual_multiplicities(
@@ -77,7 +75,7 @@ for (band, n) in zip(bands, ns)
     if first(band′) == 1
         topo = topology_from_2T1L_xor_1L(n′, sb, lgirsd["Γ"], B)
     else
-        topo = checkfragile ? calc_detailed_topology(n′, nontopo_M, B) : calc_topology(n′, F)
+        topo = checkfragile ? calc_detailed_topology(n′, B, F) : calc_topology(n′, F)
     end
 
     println(band′, " ⇒ ", topo)
