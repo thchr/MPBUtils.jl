@@ -277,7 +277,7 @@ function lattice_from_mpbparams(io::IO)
         coords = split.(readuntil(io, ')'))
         R .= parse.(Ref(Float64), coords)
     end
-    Rs = DirectBasis{D}(vecs)
+    Rs = DirectBasis{D}(vecs...)
 
     # --- ("flattened") orbits ---
     rewinding_readuntil(io, "uc-gvecs=")
