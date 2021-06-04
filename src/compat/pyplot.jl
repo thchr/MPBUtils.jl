@@ -1,4 +1,5 @@
 # Plot from MPB-data (::AbstractFourierLattice) -------------------------------------------
+using .PyPlot
 
 function plot_lattice_from_mpbparams(filepath::String; kwargs...)
     Rs, flat, isoval, _ = lattice_from_mpbparams(filepath)
