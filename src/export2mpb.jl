@@ -105,13 +105,13 @@ above, with `calcname` specified as an input parameter (assumed to be a subfolde
 `/input/`).
 """
 function prepare_mpbcalc!(io::IO, sgnum::Integer, flat::AbstractFourierLattice{D},
-                          Rs::DirectBasis{D},
+                          Rs::AbstractVector{<:AbstractVector},
                           filling::Union{Real, Nothing}=0.5, εin::Real=10.0, εout::Real=1.0,
                           runtype::String="all";
                           # kwargs
                           id=1,
                           res::Integer=32,
-                          kvecs::Union{Nothing, AbstractString, AbstractVector{<:Vector{<:Real}}}=nothing,
+                          kvecs::Union{Nothing, AbstractString, AbstractVector{<:AbstractVector{<:Real}}}=nothing,
                           lgs::Union{Nothing, AbstractVector{LittleGroup{D}}}=nothing,
                           nbands::Union{Nothing, Integer}=nothing,
                           isoval::Union{Nothing, Real}=nothing) where D
