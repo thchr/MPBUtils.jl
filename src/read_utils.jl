@@ -32,7 +32,7 @@ function read_symdata(calcname::AbstractString;
     D < length(αβγ)   && (αβγ = αβγ[1:D])
 
     # prepare default little groups of associated space group
-    lgs⁰  = get_littlegroups(sgnum, Val(D))
+    lgs⁰  = littlegroups(sgnum, Val(D))
     isprimitive && map!(g -> primitivize(g, #=modw=# false), values(lgs⁰)) # primitivize
 
     # read mpb dispersion data; use to guarantee frequency sorting at each k-point
@@ -195,7 +195,7 @@ end
 function pick_lgirreps(lgd::Dict{String, LittleGroup{D}};
             timereversal::Bool=true, isprimitive::Bool=true) where D
     sgnum = num(first(values(lgd)))
-    lgirsd = get_lgirreps(sgnum, Val(D))
+    lgirsd = lgirreps(sgnum, Val(D))
     # filter out k-points not in `lgd`
     filter!(((klab,_),) -> klab ∈ keys(lgd), lgirsd)
 
