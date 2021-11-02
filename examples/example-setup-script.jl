@@ -52,8 +52,8 @@ for id in ids
     open(filepath, "w") do io
         prepare_mpbcalc!(io, sgnum, pflat, pRs, filling, epsin, epsout, runtype;
                                 res=res, lgs=plgs, id=id, nbands=nbands)
-        # NB: if you want an mpb dispersion calculation, provide a keyword argument `kvecs`
-        #     instead of `lgs` in the above. You can also supply a filename for `kvecs` if
+        # NB: if you want an mpb dispersion calculation, provide a keyword argument `kvs`
+        #     instead of `lgs` in the above. You can also supply a filename for `kvs` if
         #     you want.
     end
     id == 1 && println("MPB setup files written to:")

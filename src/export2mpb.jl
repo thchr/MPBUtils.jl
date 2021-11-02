@@ -80,7 +80,7 @@ end
 Formats a set of parameters that uniquely specify an MPB calculation, given a 
 space group number `sgnum`, a Fourier lattice `flat`, a DirectBasis `Rs`, a filling
 fraction `filling` for `flat`, interior and exterior (above, below the contour)
-permittivities `εin` and `εout`, as well as a list of k-vectors `kvecs`, an 
+permittivities `εin` and `εout`, as well as a list of k-vectors `kvs`, an 
 identifying tag `id` (to label the calculation for book-keeping purposes), a 
 resolution for the MPB calculation `res`, and a selection of calculation type
 `runtype` ("all", "te", or "tm"). The results are written to requested IO `io`.
@@ -104,17 +104,25 @@ Locally, in `mpb-ctl` we have a file `run-fourier-lattice.sh` which performs the
 above, with `calcname` specified as an input parameter (assumed to be a subfolder
 `/input/`).
 """
-function prepare_mpbcalc!(io::IO, sgnum::Integer, flat::AbstractFourierLattice{D},
-                          Rs::AbstractVector{<:AbstractVector},
-                          filling::Union{Real, Nothing}=0.5, εin::Real=10.0, εout::Real=1.0,
-                          runtype::String="all";
-                          # kwargs
-                          id=1,
-                          res::Integer=32,
-                          kvecs::Union{Nothing, AbstractString, AbstractVector{<:AbstractVector{<:Real}}}=nothing,
-                          lgs::Union{Nothing, AbstractVector{LittleGroup{D}}}=nothing,
-                          nbands::Union{Nothing, Integer}=nothing,
-                          isoval::Union{Nothing, Real}=nothing) where D
+function prepare_mpbcalc!(
+            io::IO,
+            sgnum::Integer,
+            flat::AbstractFourierLattice{D},
+            Rs::AbstractVector{<:AbstractVector},
+            filling::Union{Real, Nothing}=0.5, εin::Real=10.0, εout::Real=1.0,
+            runtype::String="all";
+            # kwargs
+            id=1,
+            res::Integer=32,
+            kvs::Union{Nothing, AbstractString, AbstractVector{<:AbstractVector{<:Real}}}=nothing,
+            lgs::Union{Nothing, AbstractVector{LittleGroup{D}}}=nothing,
+            nbands::Union{Nothing, Integer}=nothing,
+            isoval::Union{Nothing, Real}=nothing,
+            # TODO: remove below kwarg (here for deprecation of `kvecs` -> `kvs` kwarg)
+            kvecs::Union{Nothing, AbstractString, AbstractVector{<:Vector{<:Real}}}=nothing
+            ) where D
+
+    (kvs === nothing && kvecs !== nothing) && (kvs = kvecs) # TODO: remove with `kvecs` kwarg
 
     # --- prep work to actually call mpb ---
     calcname = mpb_calcname(D, sgnum, id, res, runtype)
@@ -160,21 +168,21 @@ function prepare_mpbcalc!(io::IO, sgnum::Integer, flat::AbstractFourierLattice{D
     if lgs !== nothing
         # if `lgs` is supplied, we interpret it as a request to do symmetry eigenvalue
         # calculations at requested little group k-points
-        kvecs !== nothing && throw(ArgumentError("One of kvecs or lgs must be nothing"))
-        kvecs = write_lgs_to_mpb!(io, lgs)
+        kvs !== nothing && throw(ArgumentError("One of `kvs` or `lgs` must be nothing"))
+        kvs = write_lgs_to_mpb!(io, lgs)
         println(io)
     end
 
-    # write kvecs (if they are not nothing; we may not always want to give kvecs explicitly,
+    # write `kvs` (if they are not nothing; we may not always want to give `kvs` explicitly,
     #              e.g. for berry phase calculations)
-    write(io, "kvecs", "=")
-    if kvecs !== nothing 
-        if kvecs isa AbstractString
-            write(io, "\"", kvecs, "\"")
-        elseif kvecs isa AbstractVector{<:AbstractVector{<:Real}}
-            _vec2list(io, _vec2vector3, kvecs)
+    write(io, "kvs", "=")
+    if kvs !== nothing 
+        if kvs isa AbstractString
+            write(io, "\"", kvs, "\"")
+        elseif kvs isa AbstractVector{<:AbstractVector{<:Real}}
+            _vec2list(io, _vec2vector3, kvs)
         else
-            error("incompatible type for kvecs ($(typeof(kvecs)))")
+            error("incompatible type for `kvs` ($(typeof(kvs)))")
         end
     else
         # easier just to write an empty string than nothing; otherwise we have to bother
@@ -186,19 +194,22 @@ function prepare_mpbcalc!(io::IO, sgnum::Integer, flat::AbstractFourierLattice{D
 end
 
 function prepare_mpbcalc(sgnum::Integer, flat::AbstractFourierLattice{D}, 
-                         Rs::DirectBasis{D}, 
-                         filling::Union{Real, Nothing}=0.5, εin::Real=10.0, εout::Real=1.0,
-                         runtype::String="all";
-                         # kwargs
-                         id=1, 
-                         res::Integer=32, 
-                         kvecs::Union{Nothing, AbstractString, AbstractVector{<:Vector{<:Real}}}=nothing, 
-                         lgs::Union{Nothing, AbstractVector{LittleGroup{D}}}=nothing,
-                         nbands::Union{Nothing, Integer}=nothing,
-                         isoval::Union{Nothing, Real}=nothing) where D
+            Rs::DirectBasis{D}, 
+            filling::Union{Real, Nothing}=0.5, εin::Real=10.0, εout::Real=1.0,
+            runtype::String="all";
+            # kwargs
+            id=1, 
+            res::Integer=32, 
+            kvs::Union{Nothing, AbstractString, AbstractVector{<:Vector{<:Real}}}=nothing, 
+            lgs::Union{Nothing, AbstractVector{LittleGroup{D}}}=nothing,
+            nbands::Union{Nothing, Integer}=nothing,
+            isoval::Union{Nothing, Real}=nothing,
+            # TODO: remove below kwarg (here for deprecation of `kvecs` -> `kvs` kwarg)
+            kvecs::Union{Nothing, AbstractString, AbstractVector{<:Vector{<:Real}}}=nothing
+            ) where D
     io = IOBuffer()
     prepare_mpbcalc!(io, sgnum, flat, Rs, filling, εin, εout, runtype; 
-                         res=res, id=id, kvecs=kvecs, lgs=lgs, nbands=nbands, isoval=isoval)
+                         res, id, kvs, lgs, nbands, isoval, kvecs)
     return String(take!(io))
 end
 
@@ -236,10 +247,10 @@ function write_lgs_to_mpb!(io::IO, lgs::AbstractVector{<:LittleGroup{D}}) where 
 
     # define the k-points across `lgs`, evaluated with (α,β,γ) = TEST_αβγ
     αβγ   = length(TEST_αβγ) == D ? TEST_αβγ : TEST_αβγ[1:D]
-    kvecs = map(lg->kvec(lg)(αβγ), lgs)
+    kvs = map(lg->position(lg)(αβγ), lgs)
     # ... does not print a newline after last line; should be added by callee if relevant
 
-    return kvecs
+    return kvs
 end
 
 
@@ -256,7 +267,7 @@ Output:
     isoval::Float64,
     epsin::Float64,
     epsout::Float64
-    kvecs::Vector{SVector{D, Float64}}
+    kvs::Vector{SVector{D, Float64}}
 ```
 
 Note that `flat` does not retain information about orbit groupings, since we flatten the 
@@ -315,9 +326,9 @@ function lattice_from_mpbparams(io::IO)
     epsout = tryparse(Float64, readline(io))
 
     # --- k-vectors ---
-    kvecs = kvecs_from_mpbparams(io, Val(D))
+    kvs = kvecs_from_mpbparams(io, Val(D))
 
-    return Rs, flat, isoval, epsin, epsout, kvecs
+    return Rs, flat, isoval, epsin, epsout, kvs
 end
 lattice_from_mpbparams(filepath::String) = open(filepath) do io; lattice_from_mpbparams(io); end
 
@@ -327,27 +338,27 @@ function kvecs_from_mpbparams(io::IO, ::Val{D}) where D
     # if kvecs is a not string marked by "(vector3 ...)", interpret as a list points
     if read(io, Char) !== '"'
         reset(io)
-        kvecs = SVector{D, Float64}[]
+        kvs = SVector{D, Float64}[]
         while true
             readuntil(io, "(vector3 ")
             coords = split(readuntil(io, ')'))
-            next_kvec = parse.(Ref(Float64), coords)
-            push!(kvecs, SVector{D,Float64}(next_kvec[1:D]))
+            next_kv = parse.(Ref(Float64), coords)
+            push!(kvs, SVector{D,Float64}(next_kv[1:D]))
             (read(io, Char) == ')') && break # look for a closing (double) parenthesis to match the assumed opening "(list "
         end
-    else # kvecs is a string, interpret as filename in same directory as io's "origin"
+    else # kvs is a string, interpret as filename in same directory as io's "origin"
         ioname = io.name
-        kvecsfile = readuntil(io, "\"")
+        kvsfile = readuntil(io, "\"")
         if ioname[1:6] == "<file "
             dir = dirname(ioname[7:end-1])
-            kvecs = SVector{D, Float64}[]
-            open(dir*"/"*kvecsfile) do ioᵏ
+            kvs = SVector{D, Float64}[]
+            open(dir*"/"*kvsfile) do ioᵏ
                 # assume a format "((0.0 0.1 0.2) (0.2 0.3 .4) ... (.3 .1 .2) )" [note the space at the end]
-                (read(ioᵏ, Char) == '(' && read(ioᵏ, Char) == '(') || throw("Unexpected format of kvecs file")
+                (read(ioᵏ, Char) == '(' && read(ioᵏ, Char) == '(') || throw("Unexpected format of kvecs entry")
                 while true
                     coords = split(readuntil(ioᵏ, ")"))
-                    next_kvec = parse.(Ref(Float64), coords)
-                    push!(kvecs, SVector{D,Float64}(next_kvec[1:D]))
+                    next_kv = parse.(Ref(Float64), coords)
+                    push!(kvs, SVector{D,Float64}(next_kv[1:D]))
                     (read(ioᵏ, Char) == ' ' && read(ioᵏ, Char) == '(') || break
                 end
             end
@@ -356,7 +367,7 @@ function kvecs_from_mpbparams(io::IO, ::Val{D}) where D
         end
     end
 
-    return kvecs
+    return kvs
 end
 function kvecs_from_mpbparams(filepath::String, Dᵛ::Val{D}=Val(3)) where D
     open(filepath) do io

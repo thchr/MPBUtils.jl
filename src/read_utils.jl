@@ -52,7 +52,7 @@ function read_symdata(calcname::AbstractString;
     for kidx in 1:Nk
         kv = flip_ksign ? -kvs[kidx] : kvs[kidx] # `flip_ksign` is a hack to work around 
                                                  # phase convention issues; there be dragons
-        klab = findfirst(lg->isapprox(kvec(lg)(αβγ), kv, atol=1e-6), lgs⁰)
+        klab = findfirst(lg->isapprox(position(lg)(αβγ), kv, atol=1e-6), lgs⁰)
         klab === nothing && error("could not find matching KVec for loaded kv = $kv")
         lgopsd[klab]   = Vector{SymOperation{D}}()
         symeigsd[klab] = [Vector{ComplexF64}() for _ in 1:Nbands]
@@ -66,7 +66,7 @@ function read_symdata(calcname::AbstractString;
         end
     end
     # build little groups
-    lgd = Dict(klab => LittleGroup{D}(sgnum, kvec(lgs⁰[klab]), klab, ops) for (klab, ops) in lgopsd)
+    lgd = Dict(klab => LittleGroup{D}(sgnum, position(lgs⁰[klab]), klab, ops) for (klab, ops) in lgopsd)
 
     return symeigsd, lgd
 end
