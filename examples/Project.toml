@@ -5,7 +5,7 @@ PhotonicBandConnectivity = "d7bc101a-f969-4292-96d7-1ebdabfa903f"
 SymmetryBases = "cb68ded9-7e8c-45d3-bc66-19b5867c0467"
 
 [compat]
-Crystalline = "0.3.7"
-PhotonicBandConnectivity = "0.2.2"
-SymmetryBases = "0.3.0"
-julia = "1.5"
+Crystalline = "0.4.12"
+PhotonicBandConnectivity = "0.2.5"
+SymmetryBases = "0.4"
+julia = "1.6"
