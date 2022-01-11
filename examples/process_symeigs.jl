@@ -73,7 +73,7 @@ for (band, n) in zip(bands, ns)
 
     # calculate topology of bands
     if first(band′) == 1
-        topo = topology_from_2T1L_xor_1L(n′, sb, lgirsd["Γ"], B)
+        topo = calc_topology_singular(n′, sb, lgirsd["Γ"], B)
     else
         topo = checkfragile ? calc_detailed_topology(n′, B, F) : calc_topology(n′, F)
     end
