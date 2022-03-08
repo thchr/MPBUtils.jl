@@ -119,7 +119,7 @@ function prepare_mpbcalc!(
             nbands::Union{Nothing, Integer}=nothing,
             isoval::Union{Nothing, Real}=nothing,
             # TODO: remove below kwarg (here for deprecation of `kvecs` -> `kvs` kwarg)
-            kvecs::Union{Nothing, AbstractString, AbstractVector{<:Vector{<:Real}}}=nothing
+            kvecs::Union{Nothing, AbstractString, AbstractVector{<:AbstractVector{<:Real}}}=nothing
             ) where D
 
     (kvs === nothing && kvecs !== nothing) && (kvs = kvecs) # TODO: remove with `kvecs` kwarg
@@ -200,12 +200,12 @@ function prepare_mpbcalc(sgnum::Integer, flat::AbstractFourierLattice{D},
             # kwargs
             id=1, 
             res::Integer=32, 
-            kvs::Union{Nothing, AbstractString, AbstractVector{<:Vector{<:Real}}}=nothing, 
+            kvs::Union{Nothing, AbstractString, AbstractVector{<:AbstractVector{<:Real}}}=nothing, 
             lgs::Union{Nothing, AbstractVector{LittleGroup{D}}}=nothing,
             nbands::Union{Nothing, Integer}=nothing,
             isoval::Union{Nothing, Real}=nothing,
             # TODO: remove below kwarg (here for deprecation of `kvecs` -> `kvs` kwarg)
-            kvecs::Union{Nothing, AbstractString, AbstractVector{<:Vector{<:Real}}}=nothing
+            kvecs::Union{Nothing, AbstractString, AbstractVector{<:AbstractVector{<:Real}}}=nothing
             ) where D
     io = IOBuffer()
     prepare_mpbcalc!(io, sgnum, flat, Rs, filling, εin, εout, runtype; 
