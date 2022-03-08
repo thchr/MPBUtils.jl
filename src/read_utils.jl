@@ -75,13 +75,13 @@ end
 
 
 function symeigs2irreps(symeigs::AbstractVector, lgirs::Vector{LGIrrep{D}}, bands;
-            atol::Real=DEFAULT_ATOL, αβγ::AbstractVector{<:Real}=TEST_αβγ) where D
+            αβγ::AbstractVector{<:Real}=TEST_αβγ, kwargs...) where D
                                                                         # ... root accessor
     D < length(αβγ) && (αβγ = αβγ[1:D])
     
     # return multiplicities over provided irreps (and across `bands`)
     symeigs_bands = sum(@view symeigs[bands])
-    return find_representation(symeigs_bands, lgirs, αβγ, Float64, atol=atol)
+    return find_representation(symeigs_bands, lgirs, αβγ, Float64; kwargs...)
 end
 
 """
@@ -301,9 +301,10 @@ end
 
 function find_individual_multiplicities(symeigsd::Dict{String,<:AbstractVector},
             lgirsd::Dict{String,Vector{LGIrrep{D}}};
-            atol::Real=DEFAULT_ATOL,
+            atol::Real=1e-2,
             αβγ::AbstractVector{<:Real}=TEST_αβγ,
-            latestarts::Dict{String,Int}=Dict("Γ" => D)) where D
+            latestarts::Dict{String,Int}=Dict("Γ" => D),
+            maxresnorm::Real=1e-3) where D
     
     Nbands = length(first(values(symeigsd)))
 
@@ -313,7 +314,7 @@ function find_individual_multiplicities(symeigsd::Dict{String,<:AbstractVector},
         start = stop = get(latestarts, klab, 1)
         while stop ≤ Nbands
             bands = start:stop
-            n = symeigs2irreps(symeigs, lgirs, bands; atol, αβγ)
+            n = symeigs2irreps(symeigs, lgirs, bands; atol, αβγ, maxresnorm)
             if n !== nothing
                 idxs = findall(nᵢ -> nᵢ > atol && abs(round(nᵢ) - nᵢ) < atol, n)
                 if length(idxs) ≥ 1
