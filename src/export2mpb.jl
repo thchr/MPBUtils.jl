@@ -175,7 +175,7 @@ function prepare_mpbcalc!(
 
     # write `kvs` (if they are not nothing; we may not always want to give `kvs` explicitly,
     #              e.g. for berry phase calculations)
-    write(io, "kvs", "=")
+    write(io, "kvecs", "=")
     if kvs !== nothing 
         if kvs isa AbstractString
             write(io, "\"", kvs, "\"")
