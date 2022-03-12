@@ -60,7 +60,7 @@ function _mat2matrix3x3(m::SMatrix{D,D,<:Real}) where D
         m′[1,1] = only(m)
         m = SMatrix(m′)
     elseif D == 2 # extend 2D to 3D
-        m = hcat(vcat(m, @SVector[0,0]'), @SVector[0,0,1])
+        m = hcat(vcat(m, (@SVector [0,0])'), @SVector[0,0,1])
     elseif D ≠ 3
         throw(DomainError(m, "conversion to matrix3x3 only possible for matrices of size (1,1), (2,2), or (3,3)"))
     end
