@@ -2,6 +2,37 @@ using DelimitedFiles
 
 # ---------------------------------------------------------------------------------------- #
 
+function make_symmetryvector(bandirsd::Dict{String, Vector{Pair{UnitRange{Int64}, Vector{Int64}}}}, 
+lgirsd::Dict{String, Vector{LGIrrep{2}}}, sgnum::Integer, dim::Integer=2, has_tr::Bool = true)
+    sb, _ = compatibility_basis(sgnum, dim; timereversal=has_tr)
+    # --- load and process data ---
+    length(lgirsd) ≠ length(sb.klabs) && error("missing k-point data")
+    bands, nds = collect_separable(bandirsd, lgirsd)
+    μs = length.(bands)
+    isempty(bands) && error("   ... found no isolable band candidates ...")
+    permd = Dict(klab => Vector{Int}(undef, length(lgirsd[klab])) for klab ∈ sb.klabs)
+    for klab in sb.klabs
+        lgirs = lgirsd[klab]
+        for (i, lgir) in enumerate(lgirs)
+            irlab = formatirreplabel(label(lgir))
+            j = findfirst(==(irlab), sb.irlabs)
+            j === nothing && error("Could not find irrep label $irlab")
+            permd[klab][i] = j
+        end
+    end
+    # use permutation to construct symmetry vectors, in `sb`'s sorting
+    ns = [Vector{Int}(undef, length(first(sb))) for _ in 1:length(bands)]
+    for (b, (nd, μ)) in enumerate(zip(nds, μs))
+        for (klab, nᵏ) in nd
+            permᵏ = permd[klab]
+            ns[b][permᵏ] .= nᵏ
+        end
+        ns[b][end] = μ
+    end
+    return ns
+end
+
+
 """
 $(TYPEDSIGNATURES)
 
