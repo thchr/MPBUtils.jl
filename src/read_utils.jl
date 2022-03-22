@@ -349,12 +349,10 @@ function collect_separable(bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Ve
 
     # Check for empty values in bandirsd and return gracefully. Otherwise the mapreduce
     # line will throw an error.
-    for (_, v) in bandirsd
-        if isempty(v)
-            warn("bandirsd has empty values. May indicate an empty lattice.")
-            return nothing
-        end
-    end
+   if any(isempty, values(bandirsd))
+      # return empty `collectibles_bands, collectibles_symvecs`
+      return Vector{UnitRange{Int}}(), Vector{Dict{String, Vector{Int}}}()
+   end
 
     Nbands = mapreduce(last∘first∘last, min, values(bandirsd)) # smallest "last" band-index
     include = Dict(klab => Int[] for klab in keys(bandirsd))
