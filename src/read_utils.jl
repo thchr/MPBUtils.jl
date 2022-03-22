@@ -347,6 +347,13 @@ function collect_separable(bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Ve
                 lgirsd::Dict{String, Vector{LGIrrep{D}}};
                 latestarts::Dict{String, Int}=Dict("Γ" => D)) where D
 
+    # Check for empty values in bandirsd and return gracefully. Otherwise the mapreduce
+    # line will throw an error.
+   if any(isempty, values(bandirsd))
+      # return empty `collectibles_bands, collectibles_symvecs`
+      return Vector{UnitRange{Int}}(), Vector{Dict{String, Vector{Int}}}()
+   end
+
     Nbands = mapreduce(last∘first∘last, min, values(bandirsd)) # smallest "last" band-index
     include = Dict(klab => Int[] for klab in keys(bandirsd))
     collectibles_bands   = Vector{UnitRange{Int}}()
