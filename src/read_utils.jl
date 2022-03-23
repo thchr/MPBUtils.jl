@@ -5,33 +5,85 @@ using DelimitedFiles
 """
 $(TYPEDSIGNATURES)
 
-Returns symmetry vector in order of k points and irreps. The last element of each vector is the filling.  
+Return a vector of band ranges `bands` and associated symmetry vectors `ns` in the
+irrep-sorting of `brs`, given a dictionary of symmetry data `bandirsd` (see
+[`extract_individual_multiplicities`](@ref)) and a dictionary of correspoinding irrep data
+`lgirsd`.
+
+The returned symmetry vectors are _potentially_ separable, in the sense that they have
+integer symmetry data and a consistent connectivity across **k**-points. Aside from this,
+no account of compatibility relations are included. To test whether a returned symmetry
+vector in fact fulfills compatibility relations, use SymmetryBases.jl's `is_bandstruct`.
+
+## Keyword arguments
+- `permd`: a dictionary of permutation vectors (indexed by **k**-vector labels), specifying
+  a mapping between the irrep sortings in `lgirsd` and `brs` (see
+  [`MPUtils.find_permutation`](@ref)). If set manually, `brs` should not be supplied (and
+  will be ignored).
+
+## Example
+Supposing a set of symmetry data `bandirsd` has been extracted by
+[`extract_individual_multiplicities`](@ref), 
 """
-function make_symmetryvectors(bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Vector{Int}}}}, lgirsd::Dict{String, Vector{LGIrrep{D}}},
-    brs::Union{BandRepSet, Nothing}=nothing; permd::Dict{String, Vector{Int}}=begin
-    brs === nothing ? error("must supply either `brs` or `permd`") :
-    find_permutation(lgirsd, brs.klabs, brs.irlabs) end) where D
+function extract_candidate_symmetryvectors(
+            bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Vector{Int}}}},
+            lgirsd::Dict{String, <:Vector{<:LGIrrep}},
+            brs=nothing;
+            permd::Dict{String, Vector{Int}}=_default_permutation(lgirsd, brs))
     
     klabs = keys(bandirsd)
     length(lgirsd) ≠ length(klabs) && error("missing k-point data")
     
     bands, nds = collect_separable(bandirsd, lgirsd)
     μs = length.(bands)
-    isempty(bands) && error("   ... found no isolable band candidates ...")
-    # use permutation to construct symmetry vectors, in `sb`'s sorting
+    isempty(bands) && error("found no isolable band candidates")
+    # construct symmetry vectors, accounting for sorting mismatch specified by `permd`
     Nirs = sum(length, values(permd))
     ns = [Vector{Int}(undef, Nirs) for _ in 1:length(bands)]
     for (b, (nd, μ)) in enumerate(zip(nds, μs))
-    for (klab, nᵏ) in nd
-        permᵏ = permd[klab]
-        ns[b][permᵏ] .= nᵏ
+        for (klab, nᵏ) in nd
+            permᵏ = permd[klab]
+            ns[b][permᵏ] .= nᵏ
+        end
+        ns[b][end] = μ
     end
-    ns[b][end] = μ
-    end
-    return ns
+    return bands, ns
 end
 
-function find_permutation(lgirsd::Dict{String, Vector{LGIrrep{D}}}, klabs::Vector{String}, irlabs::Vector{String}) where D
+"""
+$(TYPEDSIGNATURES)
+
+Return a dictionary of permutation vectors, providing a mapping between the irrep sortings
+and positions in `brs` relative to those in `lgirsd`.
+
+## Example
+```jl
+julia> using Crystalline, MPBUtils
+julia> using Crystalline: formatirreplabel
+
+julia> brs = bandreps(210, 3);    # plane group 2
+
+julia> lgirsd = lgirreps(210, 3);
+
+julia> permd = find_permutation(lgirsd, brs) # indices of irreps in `lgirsd[klab]` in `brs`
+Dict{String, Vector{Int64}} with 4 entries:
+  "Y" => [1, 2]
+  "B" => [3, 4]
+  "A" => [5, 6]
+  "Γ" => [7, 8]
+
+julia> all([formatirreplabel.(label.(lgirsd[klab])) == 
+            irreplabels(brs)[idxs] for (klab, idxs) in permd])
+true
+```
+"""
+function find_permutation(lgirsd::Dict{String, <:Vector{<:LGIrrep}}, brs::BandRepSet)
+    return find_permutation(lgirsd, klabels(brs), irreplabels(brs))
+end
+function find_permutation(
+            lgirsd::Dict{String, <:Vector{<:LGIrrep}},
+            klabs::Vector{String},
+            irlabs::Vector{String})
     # find permutation vectors between irreps in `lgirsd` and those in `irlabs` and `klabs`;
     # used to ensure alignment between sorting of symmetry vectors and band representations
     # since the alignment in `lgirsd` and e.g. `bandreps(...)` may differ
@@ -47,6 +99,15 @@ function find_permutation(lgirsd::Dict{String, Vector{LGIrrep{D}}}, klabs::Vecto
     end
     return permd
 end
+
+function _default_permutation(
+            lgirsd::Dict{String, <:Vector{<:LGIrrep}},
+            brs::Union{Nothing, BandRepSet})
+    brs === nothing && error("must supply either `brs` or `permd`")
+    return find_permutation(lgirsd, brs)
+end
+
+# ---------------------------------------------------------------------------------------- #
 
 """
 $(TYPEDSIGNATURES)
@@ -301,7 +362,7 @@ Return band-groupings and **k**-projected symmetry vectors at individual **k**-p
 (`bandirsd`) and associated little group irreps (`lgirsd`).
 
 To extract the associated **k**-point projected symmetry vectors of potentially separable
-bands, see [`collect_separable`](@ref).
+bands, see [`collect_separable`](@ref) and [`merge_to_symvectors`](@ref).
 
 ## Keyword arguments
 
@@ -386,8 +447,8 @@ end
 $(TYPEDSIGNATURES)
 
 Return the "projected" symmetry-vectors for potentially separable bands using `bandirsd`
-(see [`extract_individual_multiplicities`](@ref)) and `lgirsd` (see[`read_symdata`](@ref) 
-and [`pick_lgirreps`).
+(see [`extract_individual_multiplicities`](@ref)) and `lgirsd` (see [`read_symdata`](@ref) 
+and [`pick_lgirreps`](@ref)).
 """
 function collect_separable(bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Vector{Int}}}},
                 lgirsd::Dict{String, Vector{LGIrrep{D}}};
@@ -441,7 +502,7 @@ function collect_separable(bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Ve
     # each little group
     Nirs = Dict(klab => length(lgirsd[klab]) for klab in keys(bandirsd))
     collectibles_symvecs = Vector{Dict{String, Vector{Int}}}()
-    for (bands, include) in zip(collectibles_bands, collectibles_include)
+    for include in collectibles_include
         symvecs = Dict(klab => zeros(Int, Nir) for (klab, Nir) in Nirs)
         for (klab, idxs) in include
             for i in idxs

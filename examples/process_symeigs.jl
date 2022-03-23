@@ -5,53 +5,28 @@ using PhotonicBandConnectivity
 using MPBUtils
 
 # --- setup info ---
-sgnum  = 147
-has_tr = false
-id     = 7716
+sgnum = 147
+timereversal = false
+id = 7716
 checkfragile = true
 calcname = "dim3-sg147-breaktr-detfix-g1.0_symeigs_"*string(id)*"-res32"
 
 # --- hilbert/ebr bases ---
-sb, brs = compatibility_basis(sgnum, 3; timereversal=has_tr)
+sb, brs = compatibility_basis(sgnum, 3; timereversal)
 B = matrix(brs)
 F = smith(B)
 
 # --- load and process data ---
 bandirsd, lgirsd = extract_individual_multiplicities(
-                        calcname,
-                        timereversal=has_tr,
+                        calcname;
+                        timereversal,
                         dir = "../../mpb-ctl/output/sg147/",
                         atol=2e-2)
-length(lgirsd) ≠ length(sb.klabs) && error("missing k-point data")
+length(lgirsd) ≠ length(klabels(sb)) && error("missing k-point data")
 
-bands, nds = collect_separable(bandirsd, lgirsd)
-μs = length.(bands)
-
-isempty(bands) && error("   ... found no isolable band candidates ...")
-
-# --- build symmetry vectors ---
-# find the permutation between sorting in `sb` and `lgirsd`
-permd = Dict(klab => Vector{Int}(undef, length(lgirsd[klab])) for klab ∈ sb.klabs)
-for klab in sb.klabs
-    lgirs = lgirsd[klab]
-    for (i, lgir) in enumerate(lgirs)
-        irlab = formatirreplabel(label(lgir))
-        j = findfirst(==(irlab), sb.irlabs)
-        j === nothing && error("Could not find irrep label $irlab")
-
-        permd[klab][i] = j
-    end
-end
-
-# use permutation to construct symmetry vectors, in `sb`'s sorting
-ns = [Vector{Int}(undef, length(first(sb))) for _ in 1:length(bands)]
-for (b, (nd, μ)) in enumerate(zip(nds, μs))
-    for (klab, nᵏ) in nd
-        permᵏ = permd[klab]
-        ns[b][permᵏ] .= nᵏ
-    end
-    ns[b][end] = μ
-end
+# extract the _potentially_ separable symmetry vectors `ns` and their band-ranges `bands`
+bands, ns = extract_candidate_symmetryvectors(bandirsd, lgirsd, brs)
+μs = last.(ns) # associated connectivities
 
 # --- find which band combinations are in {BS} and then test their topology ---
 band′ = 0:0
