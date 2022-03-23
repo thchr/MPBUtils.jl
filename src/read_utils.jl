@@ -5,6 +5,52 @@ using DelimitedFiles
 """
 $(TYPEDSIGNATURES)
 
+Returns symmetry vector in order of k points and irreps. The last element of each vector is the filling.  
+"""
+function make_symmetryvectors(bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Vector{Int}}}}, lgirsd::Dict{String, Vector{LGIrrep{D}}},
+    brs::Union{BandRepSet, Nothing}=nothing; permd::Dict{String, Vector{Int}}=begin
+    brs === nothing ? error("must supply either `brs` or `permd`") :
+    find_permutation(lgirsd, brs.klabs, brs.irlabs) end) where D
+    
+    klabs = keys(bandirsd)
+    length(lgirsd) ≠ length(klabs) && error("missing k-point data")
+    
+    bands, nds = collect_separable(bandirsd, lgirsd)
+    μs = length.(bands)
+    isempty(bands) && error("   ... found no isolable band candidates ...")
+    # use permutation to construct symmetry vectors, in `sb`'s sorting
+    Nirs = sum(length, values(permd))
+    ns = [Vector{Int}(undef, Nirs) for _ in 1:length(bands)]
+    for (b, (nd, μ)) in enumerate(zip(nds, μs))
+    for (klab, nᵏ) in nd
+        permᵏ = permd[klab]
+        ns[b][permᵏ] .= nᵏ
+    end
+    ns[b][end] = μ
+    end
+    return ns
+end
+
+function find_permutation(lgirsd::Dict{String, Vector{LGIrrep{D}}}, klabs::Vector{String}, irlabs::Vector{String}) where D
+    # find permutation vectors between irreps in `lgirsd` and those in `irlabs` and `klabs`;
+    # used to ensure alignment between sorting of symmetry vectors and band representations
+    # since the alignment in `lgirsd` and e.g. `bandreps(...)` may differ
+    permd = Dict(klab => Vector{Int}(undef, length(lgirsd[klab])) for klab ∈ klabs)
+    for klab in klabs
+    lgirs = lgirsd[klab]
+        for (i, lgir) in enumerate(lgirs)
+            irlab = formatirreplabel(label(lgir))
+            j = findfirst(==(irlab), irlabs)
+            j === nothing && error("Could not find irrep label $irlab")
+            permd[klab][i] = j
+        end
+    end
+    return permd
+end
+
+"""
+$(TYPEDSIGNATURES)
+
 Return the symmetry eigenvalues and little groups as **k**-label indexed `Dict`s for
 an MPB symmetry calculation with ID `calcname`.
 
