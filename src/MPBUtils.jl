@@ -21,7 +21,8 @@ export prepare_mpbcalc,
        lattice_from_mpbparams,
        kvecs_from_mpbparams,
        filling2isoval,
-       isoval2filling, make_symmetryvectors
+       isoval2filling,
+       extract_candidate_symmetryvectors
 
 # ---------------------------------------------------------------------------------------- #
 
