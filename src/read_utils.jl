@@ -59,7 +59,6 @@ and positions in `brs` relative to those in `lgirsd`.
 ## Example
 ```jl
 julia> using Crystalline, MPBUtils
-julia> using Crystalline: formatirreplabel
 
 julia> brs = bandreps(210, 3);    # plane group 2
 
@@ -72,8 +71,7 @@ Dict{String, Vector{Int64}} with 4 entries:
   "A" => [5, 6]
   "Γ" => [7, 8]
 
-julia> all([formatirreplabel.(label.(lgirsd[klab])) == 
-            irreplabels(brs)[idxs] for (klab, idxs) in permd])
+julia> all([label.(lgirsd[klab]) == irreplabels(brs)[idxs] for (klab, idxs) in permd])
 true
 ```
 """
@@ -91,7 +89,7 @@ function find_permutation(
     for klab in klabs
     lgirs = lgirsd[klab]
         for (i, lgir) in enumerate(lgirs)
-            irlab = formatirreplabel(label(lgir))
+            irlab = label(lgir)
             j = findfirst(==(irlab), irlabs)
             j === nothing && error("Could not find irrep label $irlab")
             permd[klab][i] = j
@@ -385,8 +383,8 @@ julia> bandirsd, lgirsd = extract_individual_multiplicities(calcname,
 ```
 The result can be pretty-printed by e.g.:
 ```
-julia> using Crystalline: label, formatirreplabel, symvec2string
-julia> irlabs = Dict(klab => formatirreplabel.(label.(lgirs)) for (klab, lgirs) in lgirsd)
+julia> using Crystalline: label, symvec2string
+julia> irlabs = Dict(klab => label.(lgirs) for (klab, lgirs) in lgirsd)
 julia> Dict(klab => [bands => symvec2string(n, irlabs[klab]; braces=false)
                      for (bands, n) in bandirs]         for (klab, bandirs) in bandirsd)
 ```

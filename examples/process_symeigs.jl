@@ -1,5 +1,4 @@
 using Crystalline
-using Crystalline: formatirreplabel
 using SymmetryBases
 using PhotonicBandConnectivity
 using MPBUtils

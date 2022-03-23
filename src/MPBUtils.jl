@@ -4,7 +4,7 @@ module MPBUtils
 using Crystalline
 using Crystalline: AbstractFourierLattice,
                    matching_littlegroups,
-                   DEFAULT_ATOL, formatirreplabel,
+                   DEFAULT_ATOL,
                    TEST_αβγ
 using StaticArrays
 using Statistics: quantile # for `filling2isoval`
