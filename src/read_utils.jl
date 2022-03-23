@@ -39,7 +39,7 @@ function extract_candidate_symmetryvectors(
     isempty(bands) && error("found no isolable band candidates")
     # construct symmetry vectors, accounting for sorting mismatch specified by `permd`
     Nirs = sum(length, values(permd))
-    ns = [Vector{Int}(undef, Nirs) for _ in 1:length(bands)]
+    ns = [Vector{Int}(undef, Nirs+1) for _ in 1:length(bands)]
     for (b, (nd, μ)) in enumerate(zip(nds, μs))
         for (klab, nᵏ) in nd
             permᵏ = permd[klab]
