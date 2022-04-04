@@ -4,7 +4,7 @@ module MPBUtils
 using Crystalline
 using Crystalline: AbstractFourierLattice,
                    matching_littlegroups,
-                   DEFAULT_ATOL,
+                   DEFAULT_ATOL, label, formatirreplabel,
                    TEST_αβγ
 using StaticArrays
 using Statistics: quantile # for `filling2isoval`
@@ -21,8 +21,12 @@ export prepare_mpbcalc,
        lattice_from_mpbparams,
        kvecs_from_mpbparams,
        filling2isoval,
+<<<<<<< HEAD
        isoval2filling,
        extract_candidate_symmetryvectors
+=======
+       isoval2filling, make_symmetryvectors
+>>>>>>> 0be796136771b4b6eb260e854b76754ee28d0029
 
 # ---------------------------------------------------------------------------------------- #
 
