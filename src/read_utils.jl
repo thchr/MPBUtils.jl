@@ -29,7 +29,9 @@ function extract_candidate_symmetryvectors(
             bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Vector{Int}}}},
             lgirsd::Dict{String, <:Vector{<:LGIrrep{D}}},
             brs=nothing;
-            permd::Dict{String, Vector{Int}}=_default_permutation(lgirsd, brs); latestarts::Dict{String, Int}=Dict("Γ" => D)) where D
+            permd::Dict{String, Vector{Int}}=_default_permutation(lgirsd, brs);
+            latestarts::Dict{String, Int}=Dict("Γ" => D)
+            ) where D
     
     klabs = keys(bandirsd)
     length(lgirsd) ≠ length(klabs) && error("missing k-point data")
