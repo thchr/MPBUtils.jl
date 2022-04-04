@@ -27,14 +27,14 @@ Supposing a set of symmetry data `bandirsd` has been extracted by
 """
 function extract_candidate_symmetryvectors(
             bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Vector{Int}}}},
-            lgirsd::Dict{String, <:Vector{<:LGIrrep}},
+            lgirsd::Dict{String, <:Vector{<:LGIrrep{D}}},
             brs=nothing;
-            permd::Dict{String, Vector{Int}}=_default_permutation(lgirsd, brs))
+            permd::Dict{String, Vector{Int}}=_default_permutation(lgirsd, brs); latestarts::Dict{String, Int}=Dict("Γ" => D)) where D
     
     klabs = keys(bandirsd)
     length(lgirsd) ≠ length(klabs) && error("missing k-point data")
     
-    bands, nds = collect_separable(bandirsd, lgirsd)
+    bands, nds = collect_separable(bandirsd, lgirsd, latestarts=latestarts)
     μs = length.(bands)
     isempty(bands) && error("found no isolable band candidates")
     # construct symmetry vectors, accounting for sorting mismatch specified by `permd`
