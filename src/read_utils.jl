@@ -36,7 +36,7 @@ function extract_candidate_symmetryvectors(
     klabs = keys(bandirsd)
     length(lgirsd) ≠ length(klabs) && error("missing k-point data")
     
-    bands, nds = collect_separable(bandirsd, lgirsd, latestarts=latestarts)
+    bands, nds = collect_separable(bandirsd, lgirsd; latestarts)
     μs = length.(bands)
     isempty(bands) && error("found no isolable band candidates")
     # construct symmetry vectors, accounting for sorting mismatch specified by `permd`
