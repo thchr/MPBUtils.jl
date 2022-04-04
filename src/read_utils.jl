@@ -5,7 +5,6 @@ using DelimitedFiles
 """
 $(TYPEDSIGNATURES)
 
-<<<<<<< HEAD
 Return a vector of band ranges `bands` and associated symmetry vectors `ns` in the
 irrep-sorting of `brs`, given a dictionary of symmetry data `bandirsd` (see
 [`extract_individual_multiplicities`](@ref)) and a dictionary of correspoinding irrep data
@@ -28,24 +27,15 @@ Supposing a set of symmetry data `bandirsd` has been extracted by
 """
 function extract_candidate_symmetryvectors(
             bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Vector{Int}}}},
-            lgirsd::Dict{String, <:Vector{<:LGIrrep}},
+            lgirsd::Dict{String, <:Vector{<:LGIrrep{D}}},
             brs=nothing;
-            permd::Dict{String, Vector{Int}}=_default_permutation(lgirsd, brs))
-=======
-Returns symmetry vector in order of k points and irreps. The last element of each vector is the filling.  
-"""
-function make_symmetryvectors(bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Vector{Int}}}}, lgirsd::Dict{String, Vector{LGIrrep{D}}},
-    brs::Union{BandRepSet, Nothing}=nothing; permd::Dict{String, Vector{Int}}=begin
-    brs === nothing ? error("must supply either `brs` or `permd`") :
-    find_permutation(lgirsd, brs.klabs, brs.irlabs) end) where D
->>>>>>> 0be796136771b4b6eb260e854b76754ee28d0029
+            permd::Dict{String, Vector{Int}}=_default_permutation(lgirsd, brs); latestarts::Dict{String, Int}=Dict("Γ" => D)) where D
     
     klabs = keys(bandirsd)
     length(lgirsd) ≠ length(klabs) && error("missing k-point data")
     
-    bands, nds = collect_separable(bandirsd, lgirsd)
+    bands, nds = collect_separable(bandirsd, lgirsd, latestarts=latestarts)
     μs = length.(bands)
-<<<<<<< HEAD
     isempty(bands) && error("found no isolable band candidates")
     # construct symmetry vectors, accounting for sorting mismatch specified by `permd`
     Nirs = sum(length, values(permd))
@@ -92,23 +82,6 @@ function find_permutation(
             lgirsd::Dict{String, <:Vector{<:LGIrrep}},
             klabs::Vector{String},
             irlabs::Vector{String})
-=======
-    isempty(bands) && error("   ... found no isolable band candidates ...")
-    # use permutation to construct symmetry vectors, in `sb`'s sorting
-    Nirs = sum(length, values(permd))
-    ns = [Vector{Int}(undef, Nirs) for _ in 1:length(bands)]
-    for (b, (nd, μ)) in enumerate(zip(nds, μs))
-    for (klab, nᵏ) in nd
-        permᵏ = permd[klab]
-        ns[b][permᵏ] .= nᵏ
-    end
-    ns[b][end] = μ
-    end
-    return ns
-end
-
-function find_permutation(lgirsd::Dict{String, Vector{LGIrrep{D}}}, klabs::Vector{String}, irlabs::Vector{String}) where D
->>>>>>> 0be796136771b4b6eb260e854b76754ee28d0029
     # find permutation vectors between irreps in `lgirsd` and those in `irlabs` and `klabs`;
     # used to ensure alignment between sorting of symmetry vectors and band representations
     # since the alignment in `lgirsd` and e.g. `bandreps(...)` may differ
@@ -116,11 +89,7 @@ function find_permutation(lgirsd::Dict{String, Vector{LGIrrep{D}}}, klabs::Vecto
     for klab in klabs
     lgirs = lgirsd[klab]
         for (i, lgir) in enumerate(lgirs)
-<<<<<<< HEAD
             irlab = label(lgir)
-=======
-            irlab = formatirreplabel(label(lgir))
->>>>>>> 0be796136771b4b6eb260e854b76754ee28d0029
             j = findfirst(==(irlab), irlabs)
             j === nothing && error("Could not find irrep label $irlab")
             permd[klab][i] = j
@@ -129,7 +98,6 @@ function find_permutation(lgirsd::Dict{String, Vector{LGIrrep{D}}}, klabs::Vecto
     return permd
 end
 
-<<<<<<< HEAD
 function _default_permutation(
             lgirsd::Dict{String, <:Vector{<:LGIrrep}},
             brs::Union{Nothing, BandRepSet})
@@ -139,8 +107,6 @@ end
 
 # ---------------------------------------------------------------------------------------- #
 
-=======
->>>>>>> 0be796136771b4b6eb260e854b76754ee28d0029
 """
 $(TYPEDSIGNATURES)
 
