@@ -2,6 +2,38 @@ using DelimitedFiles
 
 # ---------------------------------------------------------------------------------------- #
 
+function label_topologies(symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, lgirsd::Dict{String, Vector{LGIrrep{D}}}, 
+    sgnum::Integer; verbose::Bool=false, printisbandstruct::Bool=false, atol::Real=1e-2) where D
+    brs = bandreps(sgnum, D)
+    bandirsd = MPBUtils.find_individual_multiplicities(symeigsd, lgirsd; atol, latestarts = Dict{String, Int}())
+    bands, ns = extract_candidate_symmetryvectors(bandirsd, lgirsd, brs; latestarts = Dict{String, Int}() )
+    verbose && println("bands: ", bands, "\nns:", ns)
+    band_topologies = Vector{Pair{UnitRange{Int}, TopologyKind}}()
+    minband = 1
+    for (indx, band) in enumerate(bands)
+        minimum(band) == minband || continue
+        new_bands, new_ns = find_mintoposet(bands, ns, indx, brs)
+        verbose && println(new_bands, "   ", new_ns)
+        printisbandstruct && println(isbandstruct(new_ns, brs))
+        !isnothing(new_ns) && push!(band_topologies, new_bands => calc_detailed_topology(new_ns, brs))
+        minband = maximum(new_bands) + 1
+    end
+    return band_topologies
+end
+
+function find_mintoposet(bands::Vector{<:UnitRange{<:Integer}}, ns::Vector{<:Vector{<:Integer}}, idx::Integer, brs::BandRepSet)
+    nprime = ns[idx]
+    bandsprime = minimum(bands[idx]):maximum(bands[idx])
+    for (band, n) in zip(bands[idx+1:end], ns[idx+1:end])
+        isbandstruct(nprime, brs) && break
+        nprime = nprime + n
+        bandsprime = minimum(bands[idx]):maximum(band)
+    end
+    isbandstruct(nprime, brs) ? (bandsprime, nprime) : (bandsprime, nothing)
+end
+
+
+
 """
 $(TYPEDSIGNATURES)
 
