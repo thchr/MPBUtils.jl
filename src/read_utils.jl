@@ -2,6 +2,12 @@ using DelimitedFiles
 
 # ---------------------------------------------------------------------------------------- #
 
+struct bandstructure
+    topology :: AbstractString
+    n :: Vector{<:Integer}
+    indicator :: AbstractString
+end
+
 function label_topologies(symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, lgirsd::Dict{String, Vector{LGIrrep{D}}}, 
     sgnum::Integer; verbose::Bool=false, printisbandstruct::Bool=false, atol::Real=1e-2) where D
     brs = bandreps(sgnum, D)
