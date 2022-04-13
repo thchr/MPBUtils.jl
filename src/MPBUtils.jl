@@ -7,6 +7,7 @@ using Crystalline: AbstractFourierLattice,
                    DEFAULT_ATOL,
                    TEST_αβγ
 using StaticArrays
+using SymmetryBases
 using Statistics: quantile # for `filling2isoval`
 using DocStringExtensions
 using Requires
