@@ -2,10 +2,11 @@ using DelimitedFiles
 
 # ---------------------------------------------------------------------------------------- #
 
-struct bandstructure
-    topology :: AbstractString
+struct BandSummary
+    topology :: TopologyKind
     n :: Vector{<:Integer}
-    indicator :: AbstractString
+    irlabs :: Vector{<:Integer}
+    indicator :: String
 end
 
 function label_topologies(symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, lgirsd::Dict{String, Vector{LGIrrep{D}}}, 
