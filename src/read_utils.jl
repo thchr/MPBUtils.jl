@@ -6,7 +6,7 @@ struct BandSummary
     topology :: TopologyKind
     n :: Vector{Int}
     irlabs :: Vector{Int}
-    indicator :: String
+    indicator :: Vector{Int}
 end
 
 function label_topologies(symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, lgirsd::Dict{String, Vector{LGIrrep{D}}}, 
