@@ -4,8 +4,8 @@ using DelimitedFiles
 
 struct BandSummary
     topology :: TopologyKind
-    n :: Vector{<:Integer}
-    irlabs :: Vector{<:Integer}
+    n :: Vector{Int}
+    irlabs :: Vector{Int}
     indicator :: String
 end
 
