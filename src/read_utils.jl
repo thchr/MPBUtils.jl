@@ -2,6 +2,8 @@ using DelimitedFiles
 
 # ---------------------------------------------------------------------------------------- #
 
+using SymmetryBases:indicators
+
 struct BandSummary
     topology :: TopologyKind
     n :: Vector{Int}
