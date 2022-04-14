@@ -5,7 +5,7 @@ using DelimitedFiles
 struct BandSummary
     topology :: TopologyKind
     n :: Vector{Int}
-    irlabs :: Vector{Int}
+    irlabs :: Vector{String}
     indicator :: Vector{Int}
     classfication :: String
 end
@@ -13,20 +13,28 @@ end
 function label_topologies(symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, lgirsd::Dict{String, Vector{LGIrrep{D}}}, 
     sgnum::Integer; verbose::Bool=false, printisbandstruct::Bool=false, atol::Real=1e-2) where D
     brs = bandreps(sgnum, D)
-    bandirsd = MPBUtils.find_individual_multiplicities(symeigsd, lgirsd; atol, latestarts = Dict{String, Int}())
+    class = classification(brs)
+    irlabs = brs.irlabs
+    bandirsd = find_individual_multiplicities(symeigsd, lgirsd; atol, latestarts = Dict{String, Int}())
     bands, ns = extract_candidate_symmetryvectors(bandirsd, lgirsd, brs; latestarts = Dict{String, Int}() )
     verbose && println("bands: ", bands, "\nns:", ns)
     band_topologies = Vector{Pair{UnitRange{Int}, TopologyKind}}()
     minband = 1
+    symmetry_vectors = Vector{Vector{Int}}()
+    bandsummaries = Vector{BandSummary}()
     for (indx, band) in enumerate(bands)
         minimum(band) == minband || continue
         new_bands, new_ns = find_mintoposet(bands, ns, indx, brs)
         verbose && println(new_bands, "   ", new_ns)
         printisbandstruct && println(isbandstruct(new_ns, brs))
-        !isnothing(new_ns) && push!(band_topologies, new_bands => calc_detailed_topology(new_ns, brs))
+        if !isnothing(new_ns) 
+            push!(band_topologies, new_bands => calc_detailed_topology(new_ns, brs))
+            push!(symmetry_vectors, new_ns)
+            push!(bandsummaries, BandSummary(calc_detailed_topology(new_ns, brs), new_ns, irlabs, first(indicators(new_ns, brs)), class))
+        end
         minband = maximum(new_bands) + 1
     end
-    return band_topologies
+    return bandsummaries
 end
 
 function find_mintoposet(bands::Vector{<:UnitRange{<:Integer}}, ns::Vector{<:Vector{<:Integer}}, idx::Integer, brs::BandRepSet)
