@@ -30,9 +30,10 @@ function label_topologies(symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, lg
         verbose && println(new_bands, "   ", new_ns)
         printisbandstruct && println(isbandstruct(new_ns, brs))
         if !isnothing(new_ns) 
-            push!(band_topologies, new_bands => calc_detailed_topology(new_ns, brs))
+            topology_classification = calc_detailed_topology(new_ns, brs)
+            push!(band_topologies, new_bands => topology_classification)
             push!(symmetry_vectors, new_ns)
-            push!(bandsummaries, BandSummary(calc_detailed_topology(new_ns, brs), new_ns, irlabs, first(indicators(new_ns, brs)), class))
+            push!(bandsummaries, BandSummary(topology_classification, new_ns, irlabs, first(indicators(new_ns, brs)), class))
         end
         minband = maximum(new_bands) + 1
     end
