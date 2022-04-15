@@ -11,6 +11,15 @@ struct BandSummary
     indicator_group :: Vector{Int}
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Return the compatibility-allowed groupings of bands along with their topological properties
+as a `Vector{BandSummary}`.
+
+Keyword arguments `multiplicities_kwargs` are forwarded to
+[`find_individual_multiplicities`](@ref).
+"""
 function analyze_symmetry_data(
             symeigsd::Dict{String, Vector{Vector{ComplexF64}}},
             lgirsd::Dict{String, Vector{LGIrrep{D}}},
