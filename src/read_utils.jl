@@ -75,7 +75,7 @@ function Base.show(io::IO, ::MIME"text/plain", bs::BandSummary)
         length(νs) > 1 && print(io, "(")
         join(io, bs.indicators, ",")
         length(νs) > 1 && print(io, ")")
-        print(io, " ∈ ", classification(bs.indicator_group))
+        printstyled(io, " ∈ ", classification(bs.indicator_group), color=:light_black)
     end
 end
 function Base.show(io::IO, bs::BandSummary) # compact print
