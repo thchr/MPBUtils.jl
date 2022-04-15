@@ -2,55 +2,63 @@ using DelimitedFiles
 
 # ---------------------------------------------------------------------------------------- #
 
-using SymmetryBases:indicators
-
 struct BandSummary
-    topology :: TopologyKind
-    n :: Vector{Int}
-    irlabs :: Vector{String}
-    indicator :: Vector{Int}
-    classfication :: String
+    topology        :: TopologyKind
+    band            :: UnitRange{Int}
+    n               :: Vector{Int}
+    brs             :: BandRepSet
+    indicator       :: Vector{Int}
+    indicator_group :: Vector{Int}
 end
 
-function label_topologies(symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, lgirsd::Dict{String, Vector{LGIrrep{D}}}, 
-    sgnum::Integer; verbose::Bool=false, printisbandstruct::Bool=false, atol::Real=1e-2) where D
-    brs = bandreps(sgnum, D)
-    class = classification(brs)
-    irlabs = brs.irlabs
-    bandirsd = find_individual_multiplicities(symeigsd, lgirsd; atol, latestarts = Dict{String, Int}())
-    bands, ns = extract_candidate_symmetryvectors(bandirsd, lgirsd, brs; latestarts = Dict{String, Int}() )
-    verbose && println("bands: ", bands, "\nns:", ns)
-    band_topologies = Vector{Pair{UnitRange{Int}, TopologyKind}}()
-    minband = 1
-    symmetry_vectors = Vector{Vector{Int}}()
-    bandsummaries = Vector{BandSummary}()
-    for (indx, band) in enumerate(bands)
-        minimum(band) == minband || continue
-        new_bands, new_ns = find_mintoposet(bands, ns, indx, brs)
-        verbose && println(new_bands, "   ", new_ns)
-        printisbandstruct && println(isbandstruct(new_ns, brs))
-        if !isnothing(new_ns) 
-            topology_classification = calc_detailed_topology(new_ns, brs)
-            push!(band_topologies, new_bands => topology_classification)
-            push!(symmetry_vectors, new_ns)
-            push!(bandsummaries, BandSummary(topology_classification, new_ns, irlabs, first(indicators(new_ns, brs)), class))
+function analyze_symmetry_data(
+            symeigsd::Dict{String, Vector{Vector{ComplexF64}}},
+            lgirsd::Dict{String, Vector{LGIrrep{D}}},
+            brs::BandRepSet;
+            multiplicities_kwargs...) where D
+
+    B = matrix(brs)
+    F = smith(B)
+
+    bandirsd = find_individual_multiplicities(symeigsd, lgirsd;
+                                              multiplicities_kwargs...,
+                                              latestarts = Dict{String, Int}())
+    bands, ns = extract_candidate_symmetryvectors(bandirsd, lgirsd, brs;
+                                                  latestarts = Dict{String, Int}())
+
+    band_summaries = BandSummary[]
+    idx = 1
+    while idx ≤ length(ns)
+        n_and_idx = _find_next_separable_band_grouping(bands, ns, F, idx)
+        if !isnothing(n_and_idx)
+            # found a separable band grouping with sym vec `n′ = sum(ns[idx:idx′])`
+            n′, idx′ = n_and_idx
+            band′ = minimum(bands[idx]):maximum(bands[idx′])
+            idx = idx′ + 1 # set to next "starting" index
+
+            topo = calc_detailed_topology(n, B)
+            band_summary = BandSummary(topo, band′, n, brs, indicators(n, F)...)
+            
+            push!(band_summaries, band_summary)
+        else
+            break # could not find any more separable bands in `ns`; stop iteration
         end
-        minband = maximum(new_bands) + 1
     end
-    return bandsummaries
+    return band_summaries
 end
 
-function find_mintoposet(bands::Vector{<:UnitRange{<:Integer}}, ns::Vector{<:Vector{<:Integer}}, idx::Integer, brs::BandRepSet)
-    nprime = ns[idx]
-    bandsprime = minimum(bands[idx]):maximum(bands[idx])
-    for (band, n) in zip(bands[idx+1:end], ns[idx+1:end])
-        isbandstruct(nprime, brs) && break
-        nprime = nprime + n
-        bandsprime = minimum(bands[idx]):maximum(band)
-    end
-    isbandstruct(nprime, brs) ? (bandsprime, nprime) : (bandsprime, nothing)
-end
+function _find_next_separable_band_grouping(
+            ns::AbstractVector{<:AbstractVector{<:Integer}}, F::Smith, idx::Integer=1)
 
+    idx > length(ns) && return nothing
+    n′ = ns[idx]
+    isbandstruct(n′, F) && return n′, idx
+    while (idx += 1) ≤ length(ns)
+        n′ += ns[idx]
+        isbandstruct(n′, F) && return n′, idx
+    end
+    return nothing
+end
 
 
 """
