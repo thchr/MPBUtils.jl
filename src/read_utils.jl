@@ -36,8 +36,9 @@ function analyze_symmetry_data(
             band′ = minimum(bands[idx]):maximum(bands[idx′])
             idx = idx′ + 1 # set to next "starting" index
 
-            topo = calc_detailed_topology(n, B)
-            band_summary = BandSummary(topo, band′, n, brs, indicators(n, F)...)
+            topo = calc_detailed_topology(n, B; allow_nonphysical=true)
+            band_summary = BandSummary(topo, band′, n, brs,
+                                       indicators(n, F; allow_nonphysical=true)...)
             
             push!(band_summaries, band_summary)
         else
@@ -52,10 +53,10 @@ function _find_next_separable_band_grouping(
 
     idx > length(ns) && return nothing
     n′ = ns[idx]
-    isbandstruct(n′, F) && return n′, idx
+    isbandstruct(n′, F; allow_nonphysical=true) && return n′, idx
     while (idx += 1) ≤ length(ns)
         n′ += ns[idx]
-        isbandstruct(n′, F) && return n′, idx
+        isbandstruct(n′, F; allow_nonphysical=true) && return n′, idx
     end
     return nothing
 end
