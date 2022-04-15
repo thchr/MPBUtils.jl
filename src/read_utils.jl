@@ -7,7 +7,7 @@ struct BandSummary
     band            :: UnitRange{Int}
     n               :: Vector{Int}
     brs             :: BandRepSet
-    indicator       :: Vector{Int}
+    indicators      :: Vector{Int}
     indicator_group :: Vector{Int}
 end
 
@@ -58,6 +58,29 @@ function _find_next_separable_band_grouping(
         isbandstruct(n′, F) && return n′, idx
     end
     return nothing
+end
+
+Base.summary(io::IO, bs::BandSummary) = print(io, length(bs.band), "-band BandSummary:")
+function Base.show(io::IO, ::MIME"text/plain", bs::BandSummary)
+    summary(io, bs)
+    println(io)
+    println(io, " bands:      ", bs.band)
+    print(io,   " n:          ", )
+    Crystalline.prettyprint_symmetryvector(io, bs.n, irreplabels(bs.brs), braces=false)
+    println(io)
+    print(io, " topology:   ", lowercase(string(bs.topology)))
+    if bs.topology == NONTRIVIAL
+        print(io, "\n indicators: ")
+        νs = bs.indicators
+        length(νs) > 1 && print(io, "(")
+        join(io, bs.indicators, ",")
+        length(νs) > 1 && print(io, ")")
+        print(io, " ∈ ", classification(bs.indicator_group))
+    end
+end
+function Base.show(io::IO, bs::BandSummary) # compact print
+    print(io, length(bs.band), "-band (", lowercase(string(bs.topology)), "): ")
+    Crystalline.prettyprint_symmetryvector(io, bs.n, irreplabels(bs.brs))
 end
 
 
