@@ -2,6 +2,98 @@ using DelimitedFiles
 
 # ---------------------------------------------------------------------------------------- #
 
+struct BandSummary
+    topology        :: TopologyKind
+    band            :: UnitRange{Int}
+    n               :: Vector{Int}
+    brs             :: BandRepSet
+    indicators      :: Vector{Int}
+    indicator_group :: Vector{Int}
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Return the compatibility-allowed groupings of bands along with their topological properties
+as a `Vector{BandSummary}`.
+
+Keyword arguments `multiplicities_kwargs` are forwarded to
+[`find_individual_multiplicities`](@ref).
+"""
+function analyze_symmetry_data(
+            symeigsd::Dict{String, Vector{Vector{ComplexF64}}},
+            lgirsd::Dict{String, Vector{LGIrrep{D}}},
+            brs::BandRepSet;
+            multiplicities_kwargs...) where D
+
+    B = matrix(brs)
+    F = smith(B)
+
+    bandirsd = find_individual_multiplicities(symeigsd, lgirsd;
+                                              multiplicities_kwargs...,
+                                              latestarts = Dict{String, Int}())
+    bands, ns = extract_candidate_symmetryvectors(bandirsd, lgirsd, brs;
+                                                  latestarts = Dict{String, Int}())
+
+    band_summaries = BandSummary[]
+    idx = 1
+    while idx ≤ length(ns)
+        n_and_idx = _find_next_separable_band_grouping(ns, F, idx)
+        if !isnothing(n_and_idx)
+            # found a separable band grouping with sym vec `n′ = sum(ns[idx:idx′])`
+            n′, idx′ = n_and_idx
+            band′ = minimum(bands[idx]):maximum(bands[idx′])
+            idx = idx′ + 1 # set to next "starting" index
+
+            topo = calc_detailed_topology(n′, B; allow_nonphysical=true)
+            band_summary = BandSummary(topo, band′, n′, brs,
+                                       indicators(n′, F; allow_nonphysical=true)...)
+            
+            push!(band_summaries, band_summary)
+        else
+            break # could not find any more separable bands in `ns`; stop iteration
+        end
+    end
+    return band_summaries
+end
+
+function _find_next_separable_band_grouping(
+            ns::AbstractVector{<:AbstractVector{<:Integer}}, F::Smith, idx::Integer=1)
+
+    idx > length(ns) && return nothing
+    n′ = ns[idx]
+    isbandstruct(n′, F; allow_nonphysical=true) && return n′, idx
+    while (idx += 1) ≤ length(ns)
+        n′ += ns[idx]
+        isbandstruct(n′, F; allow_nonphysical=true) && return n′, idx
+    end
+    return nothing
+end
+
+Base.summary(io::IO, bs::BandSummary) = print(io, length(bs.band), "-band BandSummary:")
+function Base.show(io::IO, ::MIME"text/plain", bs::BandSummary)
+    summary(io, bs)
+    println(io)
+    println(io, " bands:      ", bs.band)
+    print(io,   " n:          ", )
+    Crystalline.prettyprint_symmetryvector(io, bs.n, irreplabels(bs.brs), braces=false)
+    println(io)
+    print(io, " topology:   ", lowercase(string(bs.topology)))
+    if bs.topology == NONTRIVIAL
+        print(io, "\n indicators: ")
+        νs = bs.indicators
+        length(νs) > 1 && print(io, "(")
+        join(io, bs.indicators, ",")
+        length(νs) > 1 && print(io, ")")
+        printstyled(io, " ∈ ", classification(bs.indicator_group), color=:light_black)
+    end
+end
+function Base.show(io::IO, bs::BandSummary) # compact print
+    print(io, length(bs.band), "-band (", lowercase(string(bs.topology)), "): ")
+    Crystalline.prettyprint_symmetryvector(io, bs.n, irreplabels(bs.brs))
+end
+
+
 """
 $(TYPEDSIGNATURES)
 
