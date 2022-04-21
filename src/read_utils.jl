@@ -38,16 +38,16 @@ function analyze_symmetry_data(
     band_summaries = BandSummary[]
     idx = 1
     while idx ≤ length(ns)
-        n_and_idx = _find_next_separable_band_grouping(bands, ns, F, idx)
+        n_and_idx = _find_next_separable_band_grouping(ns, F, idx)
         if !isnothing(n_and_idx)
             # found a separable band grouping with sym vec `n′ = sum(ns[idx:idx′])`
             n′, idx′ = n_and_idx
             band′ = minimum(bands[idx]):maximum(bands[idx′])
             idx = idx′ + 1 # set to next "starting" index
 
-            topo = calc_detailed_topology(n, B; allow_nonphysical=true)
-            band_summary = BandSummary(topo, band′, n, brs,
-                                       indicators(n, F; allow_nonphysical=true)...)
+            topo = calc_detailed_topology(n′, B; allow_nonphysical=true)
+            band_summary = BandSummary(topo, band′, n′, brs,
+                                       indicators(n′, F; allow_nonphysical=true)...)
             
             push!(band_summaries, band_summary)
         else

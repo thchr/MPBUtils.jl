@@ -23,7 +23,7 @@ export prepare_mpbcalc,
        kvecs_from_mpbparams,
        filling2isoval,
        isoval2filling,
-       extract_candidate_symmetryvectors, label_topologies
+       extract_candidate_symmetryvectors, analyze_symmetry_data
 
 # ---------------------------------------------------------------------------------------- #
 
