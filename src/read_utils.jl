@@ -89,7 +89,9 @@ function fix_gamma_irrep(symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, lg_
             symeigsd_fixed["Γ"][1] = signs
         end
     elseif D ==3
-        symeigsd_fixed[Γ][1] = signs .* (2cos.(2π ./ Crystalline.rotation_order.(lg_gamma)) .+ 1) .- 1
+        x2T = signs .* (2cospi.(2 ./ Crystalline.rotation_order.(lg_gamma)) .+ 1) .- 1
+        symeigsd_fixed[Γ][1] = x2T*0.65
+        symeigsd_fixed[Γ][2] = x2T*0.35
     end
     return symeigsd_fixed
 end
