@@ -70,6 +70,24 @@ function _find_next_separable_band_grouping(
     return nothing
 end
 
+function fix_gamma_irrep(symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, lgd::Dict{String, LittleGroup{D}},
+    mode::AbstractString) where D
+    symeigsd_fixed = symeigsd
+    lg_gamma = lgd["Γ"]
+    signs = [det(rotation(g)) for g in lg_gamma]
+    if D == 2
+        if mode == "tm"
+            symeigsd_fixed["Γ"][1] = ones(length(signs))
+        elseif mode == "te"
+            symeigsd_fixed["Γ"][1] = signs
+        end
+    elseif (D ==3)
+        symeigsd_fixed[Γ][1] = signs .* (2cos.(2π ./ Crystalline.rotation_order.(lg_gamma)) .+ 1) .- 1
+    end
+    return symeigsd_fixed
+end
+
+
 Base.summary(io::IO, bs::BandSummary) = print(io, length(bs.band), "-band BandSummary:")
 function Base.show(io::IO, ::MIME"text/plain", bs::BandSummary)
     summary(io, bs)
