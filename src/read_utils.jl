@@ -57,6 +57,21 @@ function analyze_symmetry_data(
     return band_summaries
 end
 
+function fix_gamma_irrep(symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, lgd::Dict{String, LittleGroup{D}}, mode::AbstractString) where D
+    symeigsd_fixed = symeigsd
+    lg_gamma = lgd["Γ"]
+    signs = [det(rotation(g)) for g in lg_gamma]
+    if (D == 2)
+        if (mode == "tm")
+            symeigsd_fixed["Γ"][1] = ones(length(signs))
+        else (mode == "te")
+            symeigsd_fixed["Γ"][1] = signs
+        end
+    elseif (D ==3)
+        symeigsd_fixed[Γ][1] = signs .* (2cos.(2π ./ Crystalline.rotation_order.(lg_gamma)) .+ 1) .- 1
+    end
+    return symeigsd_fixed
+end
 function _find_next_separable_band_grouping(
             ns::AbstractVector{<:AbstractVector{<:Integer}}, F::Smith, idx::Integer=1)
 
