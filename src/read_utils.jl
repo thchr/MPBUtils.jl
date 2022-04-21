@@ -71,17 +71,24 @@ function _find_next_separable_band_grouping(
 end
 
 function fix_gamma_irrep(symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, lgd::Dict{String, LittleGroup{D}},
-    mode::AbstractString) where D
-    symeigsd_fixed = symeigsd
+    polarization::Union{AbstractString, Nothing}=nothing) where D
+
     lg_gamma = lgd["Γ"]
+    fix_gamma_irrep(symeigsd, lg_gamma, polarization)
+
+end
+
+function fix_gamma_irrep(symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, lg_gamma::LittleGroup{D},
+    polarization::Union{AbstractString, Nothing}=nothing) where D
+    symeigsd_fixed = symeigsd
     signs = [det(rotation(g)) for g in lg_gamma]
     if D == 2
-        if mode == "tm"
+        if polarization == "tm"
             symeigsd_fixed["Γ"][1] = ones(length(signs))
-        elseif mode == "te"
+        elseif polarization == "te"
             symeigsd_fixed["Γ"][1] = signs
         end
-    elseif (D ==3)
+    elseif D ==3
         symeigsd_fixed[Γ][1] = signs .* (2cos.(2π ./ Crystalline.rotation_order.(lg_gamma)) .+ 1) .- 1
     end
     return symeigsd_fixed
