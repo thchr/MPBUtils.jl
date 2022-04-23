@@ -78,7 +78,7 @@ function fix_gamma_irrep(symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, lgd
 
 end
 
-function fix_gamma_irrep(symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, lg_gamma::LittleGroup{D},
+function fix_gamma_irrep(symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, lg_gamma::AbstractVector{SymOperation{D}},
     polarization::Union{AbstractString, Nothing}=nothing) where D
     symeigsd_fixed = symeigsd
     signs = [det(rotation(g)) for g in lg_gamma]
