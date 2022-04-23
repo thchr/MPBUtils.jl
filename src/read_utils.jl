@@ -84,7 +84,7 @@ function fix_gamma_irrep(symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, lg_
     signs = [det(rotation(g)) for g in lg_gamma]
     if D == 2
         if polarization == "tm"
-            symeigsd_fixed["Γ"][1] = ones(length(signs))
+            symeigsd_fixed["Γ"][1] .= 1
         elseif polarization == "te"
             symeigsd_fixed["Γ"][1] = signs
         end
