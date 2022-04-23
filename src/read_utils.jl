@@ -86,7 +86,7 @@ function fix_gamma_irrep(symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, lg_
         if polarization == "tm"
             symeigsd_fixed["Γ"][1] .= 1
         elseif polarization == "te"
-            symeigsd_fixed["Γ"][1] = signs
+            symeigsd_fixed["Γ"][1] .= signs
         end
     elseif D == 3
         x2T = signs .* (2cospi.(2 ./ Crystalline.rotation_order.(lg_gamma)) .+ 1) .- 1
