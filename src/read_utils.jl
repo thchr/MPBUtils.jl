@@ -70,34 +70,6 @@ function _find_next_separable_band_grouping(
     return nothing
 end
 
-function fix_gamma_irrep(symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, lgd::Dict{String, LittleGroup{D}},
-    polarization::Union{AbstractString, Nothing}=nothing) where D
-
-    lg_gamma = lgd["Γ"]
-    fix_gamma_irrep(symeigsd, lg_gamma, polarization)
-
-end
-
-function fix_gamma_irrep(symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, lg_gamma::AbstractVector{SymOperation{D}},
-    polarization::Union{AbstractString, Nothing}=nothing) where D
-    symeigsd_fixed = symeigsd
-    signs = [det(rotation(g)) for g in lg_gamma]
-    if D == 2
-        if polarization == "tm"
-            symeigsd_fixed["Γ"][1] .= 1
-        elseif polarization == "te"
-            symeigsd_fixed["Γ"][1] .= signs
-        end
-    elseif D == 3
-        x2T = signs .* (2cospi.(2 ./ Crystalline.rotation_order.(lg_gamma)) .+ 1) .- 1
-        splitting_fraction = 0.35
-        symeigsd_fixed[Γ][1] = x2T*splitting_fraction
-        symeigsd_fixed[Γ][2] = x2T*(1-splitting_fraction)
-    end
-    return symeigsd_fixed
-end
-
-
 Base.summary(io::IO, bs::BandSummary) = print(io, length(bs.band), "-band BandSummary:")
 function Base.show(io::IO, ::MIME"text/plain", bs::BandSummary)
     summary(io, bs)
@@ -121,6 +93,42 @@ function Base.show(io::IO, bs::BandSummary) # compact print
     Crystalline.prettyprint_symmetryvector(io, bs.n, irreplabels(bs.brs))
 end
 
+# ---------------------------------------------------------------------------------------- #
+
+"""
+
+TODO
+"""
+function fix_gamma_irrep!(
+            symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, # ← mutated by call
+            lg_Γ::AbstractVector{SymOperation{D}},
+            polarization::Union{Symbol, Nothing} = nothing) where D
+
+    if D == 2
+        if polarization == :TM
+            symeigsd["Γ"][1] .= 1
+        elseif polarization == :TE
+            symeigsd["Γ"][1] .= det.(rotation.(lg_Γ))
+        end
+    elseif D == 3
+        ns = Crystalline.rotation_order.(lg_Γ) # rotation order (abs) and handedness (sign)
+        x2T = sign.(ns) .* (2cospi.(2 ./ ns) .+ 1) .- 1
+        splitting_fraction = 0.3721 # arbitrary fraction of 1 to avoid bands 1 and 2 
+                                    # appearing splittable by accident
+        symeigsd[Γ][1] .= x2T .* splitting_fraction
+        symeigsd[Γ][2] .= x2T .* (1 - splitting_fraction)
+    end
+    return symeigsd
+end
+function fix_gamma_irrep!(
+            symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, # ← mutated by call
+            lgd::Dict{String, LittleGroup{D}},
+            polarization::Union{Symbol, Nothing} = nothing) where D
+
+    return fix_gamma_irrep!(symeigsd, lgd["Γ"], polarization)
+end
+
+# ---------------------------------------------------------------------------------------- #
 
 """
 $(TYPEDSIGNATURES)

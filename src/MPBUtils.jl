@@ -13,6 +13,7 @@ using DocStringExtensions
 using Requires
 using DelimitedFiles
 using LinearAlgebra
+
 # ---------------------------------------------------------------------------------------- #
 
 export prepare_mpbcalc,
@@ -23,7 +24,9 @@ export prepare_mpbcalc,
        kvecs_from_mpbparams,
        filling2isoval,
        isoval2filling,
-       extract_candidate_symmetryvectors, analyze_symmetry_data, fix_gamma_irrep
+       extract_candidate_symmetryvectors,
+       analyze_symmetry_data,
+       fix_gamma_irrep
 
 # ---------------------------------------------------------------------------------------- #
 
