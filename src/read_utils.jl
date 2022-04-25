@@ -387,7 +387,7 @@ function symeigs2irreps(symeigs::AbstractVector, lgirs::Vector{LGIrrep{D}}, band
 end
 
 """
-$(TYPEDSIGNATURES) --> Dict{String, Union{Nothing, Vector{Float64}}}
+$(TYPEDSIGNATURES)
 
 Return the irrep multiplicities for provided symmetry eigenvalues `symeigsd` with associated
 little group irreps `lgirsd`, with symmetry eigenvalues aggregated (i.e. summed) over the 
@@ -430,7 +430,7 @@ function extract_multiplicities(symeigsd::Dict{String,<:Any},
 end
 
 """
-$(TYPEDSIGNATURES) --> Dict{String, Union{Nothing, Vector{Float64}}}
+$(TYPEDSIGNATURES)
 
 Return the irrep multiplicities for provided symmetry eigenvalues `symeigsd` with associated
 little groups `lgd`, with symmetry eigenvalues aggregated (i.e. summed) over the 
@@ -551,7 +551,7 @@ end
 # ---------------------------------------------------------------------------------------- #
 
 """
-$(TYPEDSIGNATURES) --> bandirsd, lgirsd
+$(TYPEDSIGNATURES)
 
 Return band-groupings and **k**-projected symmetry vectors at individual **k**-points
 (`bandirsd`) and associated little group irreps (`lgirsd`).
