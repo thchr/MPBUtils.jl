@@ -2,6 +2,170 @@ using DelimitedFiles
 
 # ---------------------------------------------------------------------------------------- #
 
+struct BandSummary
+    topology        :: TopologyKind
+    band            :: UnitRange{Int}
+    n               :: Vector{Int}
+    brs             :: BandRepSet
+    indicators      :: Vector{Int}
+    indicator_group :: Vector{Int}
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Return the compatibility-allowed groupings of bands along with their topological properties
+as a `Vector{BandSummary}`.
+
+Keyword arguments `multiplicities_kwargs` are forwarded to
+[`find_individual_multiplicities`](@ref).
+"""
+function analyze_symmetry_data(
+            symeigsd::Dict{String, Vector{Vector{ComplexF64}}},
+            lgirsd::Dict{String, Vector{LGIrrep{D}}},
+            brs::BandRepSet;
+            multiplicities_kwargs...) where D
+
+    B = matrix(brs)
+    F = smith(B)
+
+    bandirsd = find_individual_multiplicities(symeigsd, lgirsd;
+                                              multiplicities_kwargs...,
+                                              latestarts = Dict{String, Int}())
+    bands, ns = extract_candidate_symmetryvectors(bandirsd, lgirsd, brs;
+                                                  latestarts = Dict{String, Int}())
+
+    band_summaries = BandSummary[]
+    idx = 1
+    while idx ≤ length(ns)
+        n_and_idx = _find_next_separable_band_grouping(ns, F, idx)
+        if !isnothing(n_and_idx)
+            # found a separable band grouping with sym vec `n′ = sum(ns[idx:idx′])`
+            n′, idx′ = n_and_idx
+            band′ = minimum(bands[idx]):maximum(bands[idx′])
+            idx = idx′ + 1 # set to next "starting" index
+
+            topo = calc_detailed_topology(n′, B; allow_nonphysical=true)
+            band_summary = BandSummary(topo, band′, n′, brs,
+                                       indicators(n′, F; allow_nonphysical=true)...)
+            
+            push!(band_summaries, band_summary)
+        else
+            break # could not find any more separable bands in `ns`; stop iteration
+        end
+    end
+    return band_summaries
+end
+
+function _find_next_separable_band_grouping(
+            ns::AbstractVector{<:AbstractVector{<:Integer}}, F::Smith, idx::Integer=1)
+
+    idx > length(ns) && return nothing
+    n′ = ns[idx]
+    isbandstruct(n′, F; allow_nonphysical=true) && return n′, idx
+    while (idx += 1) ≤ length(ns)
+        n′ += ns[idx]
+        isbandstruct(n′, F; allow_nonphysical=true) && return n′, idx
+    end
+    return nothing
+end
+
+Base.summary(io::IO, bs::BandSummary) = print(io, length(bs.band), "-band BandSummary:")
+function Base.show(io::IO, ::MIME"text/plain", bs::BandSummary)
+    summary(io, bs)
+    println(io)
+    println(io, " bands:      ", bs.band)
+    print(io,   " n:          ", )
+    Crystalline.prettyprint_symmetryvector(io, bs.n, irreplabels(bs.brs), braces=false)
+    println(io)
+    print(io, " topology:   ", lowercase(string(bs.topology)))
+    if bs.topology == NONTRIVIAL
+        print(io, "\n indicators: ")
+        νs = bs.indicators
+        length(νs) > 1 && print(io, "(")
+        join(io, bs.indicators, ",")
+        length(νs) > 1 && print(io, ")")
+        printstyled(io, " ∈ ", classification(bs.indicator_group), color=:light_black)
+    end
+end
+function Base.show(io::IO, bs::BandSummary) # compact print
+    print(io, length(bs.band), "-band (", lowercase(string(bs.topology)), "): ")
+    Crystalline.prettyprint_symmetryvector(io, bs.n, irreplabels(bs.brs))
+end
+
+# ---------------------------------------------------------------------------------------- #
+
+"""
+$(TYPEDSIGNATURES)
+
+Mutate the lowest `D-1` Γ-point entries of the provided dictionary of symmetry eigenvalues
+`symeigsd` which correspond to the singular zero-frequency eigenstates. 
+The mutated entries represent a valid, consistent choice of symmetry eigenvalues, following
+the operator sorting of `lg_Γ`. Returns the mutated `symeigsd`.
+
+In `D=2`, the polarization choice (transverse electric `:TE` or transverse magnetic `:TM`)
+must be specified as the `polarization` argument.
+
+## Details
+
+The calculation of the singular zero-frequency symmetry eigenvalues of photonic crystals by
+conventional numerical methods is usually unreliable since the photonic eigenvalue problem
+is singular in the zero-frequency limit. To overcome this problem, the symmetry eigenvalues
+of the `D-1` lowest bands at the Γ-point can be manually corrected, following the procedure
+described in [^1].
+
+**In 3D**, the two lowest-frequency symmetry eigenvalues ("2T") at the Γ-point are set such
+that their sum is (``\\theta`` denoting the rotation angle of an operation ``g`` and
+``det(g)`` its handedness):
+
+``
+x^{\\text{2T}}_{\\Gamma}(g) = \\det(g) (2\\cos(\\theta) + 1) - 1.
+``
+
+In practice, this sum is distributed arbitrarily over the two lowest bands at Γ.
+
+**In 2D**, depending on the choice of `polarization` (either `:TM` or `:TE`), the
+lowest-frequency Γ-point symmetry eigenvalue is set to:
+
+``
+x^{\\text{TM}}_{\\Gamma}(g) = 1, 
+x^{\\text{TE}}_{\\Gamma}(g) = \\det(g).
+``
+
+[1]: Christensen, Po, Joannopoulos, & Soljacic, Location and topology of the fundamental
+     gap in photonic crystals, [arXiv2106.10267 (2021)](arxiv.org/abs/2106.10267).
+"""
+function fixup_gamma_symmetry!(
+            symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, # ← mutated by call
+            lg_Γ::AbstractVector{SymOperation{D}},
+            polarization::Union{Symbol, Nothing} = nothing) where D
+
+    if D == 2
+        if polarization == :TM
+            symeigsd["Γ"][1] .= 1
+        elseif polarization == :TE
+            symeigsd["Γ"][1] .= det.(rotation.(lg_Γ))
+        end
+    elseif D == 3
+        ns = Crystalline.rotation_order.(lg_Γ) # rotation order (abs) and handedness (sign)
+        x2T = sign.(ns) .* (2cospi.(2 ./ ns) .+ 1) .- 1
+        splitting_fraction = 0.3721 # arbitrary fraction of 1 to avoid bands 1 and 2 
+                                    # appearing splittable by accident
+        symeigsd[Γ][1] .= x2T .* splitting_fraction
+        symeigsd[Γ][2] .= x2T .* (1 - splitting_fraction)
+    end
+    return symeigsd
+end
+function fixup_gamma_symmetry!(
+            symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, # ← mutated by call
+            lgd::Dict{String, LittleGroup{D}},
+            polarization::Union{Symbol, Nothing} = nothing) where D
+
+    return fixup_gamma_symmetry!(symeigsd, lgd["Γ"], polarization)
+end
+
+# ---------------------------------------------------------------------------------------- #
+
 """
 $(TYPEDSIGNATURES)
 
@@ -27,14 +191,16 @@ Supposing a set of symmetry data `bandirsd` has been extracted by
 """
 function extract_candidate_symmetryvectors(
             bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Vector{Int}}}},
-            lgirsd::Dict{String, <:Vector{<:LGIrrep}},
+            lgirsd::Dict{String, <:Vector{<:LGIrrep{D}}},
             brs=nothing;
-            permd::Dict{String, Vector{Int}}=_default_permutation(lgirsd, brs))
+            permd::Dict{String, Vector{Int}}=_default_permutation(lgirsd, brs),
+            latestarts::Dict{String, Int}=Dict("Γ" => D)
+            ) where D
     
     klabs = keys(bandirsd)
     length(lgirsd) ≠ length(klabs) && error("missing k-point data")
     
-    bands, nds = collect_separable(bandirsd, lgirsd)
+    bands, nds = collect_separable(bandirsd, lgirsd; latestarts)
     μs = length.(bands)
     isempty(bands) && error("found no isolable band candidates")
     # construct symmetry vectors, accounting for sorting mismatch specified by `permd`

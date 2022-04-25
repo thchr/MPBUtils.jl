@@ -7,10 +7,12 @@ using Crystalline: AbstractFourierLattice,
                    DEFAULT_ATOL,
                    TEST_αβγ
 using StaticArrays
+using SymmetryBases
 using Statistics: quantile # for `filling2isoval`
 using DocStringExtensions
 using Requires
 using DelimitedFiles
+using LinearAlgebra
 
 # ---------------------------------------------------------------------------------------- #
 
@@ -22,7 +24,9 @@ export prepare_mpbcalc,
        kvecs_from_mpbparams,
        filling2isoval,
        isoval2filling,
-       extract_candidate_symmetryvectors
+       extract_candidate_symmetryvectors,
+       analyze_symmetry_data,
+       fixup_gamma_symmetry!
 
 # ---------------------------------------------------------------------------------------- #
 
