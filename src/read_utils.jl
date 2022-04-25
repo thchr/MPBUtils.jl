@@ -136,19 +136,28 @@ function read_symdata(calcname::AbstractString;
     D === nothing     && (D = parse_dim(calcname))
     D < length(αβγ)   && (αβγ = αβγ[1:D])
 
+    return _read_symdata(calcname, sgnum, Val(D), dir, αβγ, isprimitive, flip_ksign)
+end
+
+# function barrier cf. type-instability
+function _read_symdata(calcname::AbstractString, sgnum::Int, Dᵛ::Val{D},
+            dir::AbstractString, αβγ::AbstractVector{<:Real},
+            isprimitive::Bool, flip_ksign::Bool) where D
+    
     # prepare default little groups of associated space group
-    lgs⁰  = littlegroups(sgnum, Val(D))
+    lgs⁰  = littlegroups(sgnum, Dᵛ)
     isprimitive && map!(g -> primitivize(g, #=modw=# false), values(lgs⁰)) # primitivize
 
     # read mpb dispersion data; use to guarantee frequency sorting at each k-point
-    dispersion_data = readdlm(joinpath(dir, calcname*"-dispersion.out"), ',')
+    dispersion_data = readdlm(joinpath(dir, calcname*"-dispersion.out"), ',', Float64)::Matrix{Float64}
     kvs = collect(eachrow(@view dispersion_data[:,2:2+(D-1)]))
-    Nk     = length(kvs)
+    Nk = length(kvs)
     freqs = dispersion_data[:,6:end]
     Nbands = size(freqs, 2)
     sortidxs = [sortperm(freqs_at_fixed_k) for freqs_at_fixed_k in eachrow(freqs)]
+
     # read mpb symmetry data, mostly as Strings (first column is Int)
-    untyped_data = readdlm(joinpath(dir, calcname*"-symeigs.out"), ',', quotes=true)
+    untyped_data = readdlm(joinpath(dir, calcname*"-symeigs.out"), ',', String; quotes=true)::Matrix{String}
     Nrows = size(untyped_data, 1)
     # process raw symmetry & operator data
     lgopsd   = Dict{String, Vector{SymOperation{D}}}()    # indexing: [klabel][op]
@@ -161,7 +170,7 @@ function read_symdata(calcname::AbstractString;
         klab === nothing && error("could not find matching KVec for loaded kv = $kv")
         lgopsd[klab]   = Vector{SymOperation{D}}()
         symeigsd[klab] = [Vector{ComplexF64}() for _ in 1:Nbands]
-        while rowidx ≤ Nrows && untyped_data[rowidx, 1] == kidx
+        while rowidx ≤ Nrows && parse(Int, untyped_data[rowidx, 1])::Int == kidx
             op = SymOperation{D}(strip(untyped_data[rowidx, 2], '"'))
             push!(lgopsd[klab], op)
             # symmetry eigenvalues at `op` (and `klab`) across all bands (frequency sorted)
@@ -170,8 +179,10 @@ function read_symdata(calcname::AbstractString;
             rowidx += 1
         end
     end
+
     # build little groups
-    lgd = Dict(klab => LittleGroup{D}(sgnum, position(lgs⁰[klab]), klab, ops) for (klab, ops) in lgopsd)
+    lgd = Dict(klab => LittleGroup{D}(sgnum, position(lgs⁰[klab]), klab, ops)
+               for (klab, ops) in lgopsd)::Dict{String, LittleGroup{D}}
 
     return symeigsd, lgd
 end
