@@ -151,8 +151,8 @@ function fixup_gamma_symmetry!(
         x2T = sign.(ns) .* (2cospi.(2 ./ ns) .+ 1) .- 1
         splitting_fraction = 0.3721 # arbitrary fraction of 1 to avoid bands 1 and 2 
                                     # appearing splittable by accident
-        symeigsd[Γ][1] .= x2T .* splitting_fraction
-        symeigsd[Γ][2] .= x2T .* (1 - splitting_fraction)
+        symeigsd["Γ"][1] .= x2T .* splitting_fraction
+        symeigsd["Γ"][2] .= x2T .* (1 - splitting_fraction)
     end
     return symeigsd
 end
