@@ -2,6 +2,12 @@ using DelimitedFiles
 
 # ---------------------------------------------------------------------------------------- #
 
+"""
+    BandSummary
+
+A summary of the band symmetry and topology of a set of bands. `BandSummary`s of consecutive
+bands can be added, corresponding to stacking of bands.
+"""
 struct BandSummary
     topology        :: TopologyKind
     band            :: UnitRange{Int}
@@ -10,6 +16,54 @@ struct BandSummary
     indicators      :: Vector{Int}
     indicator_group :: Vector{Int}
 end
+
+Base.length(bs::BandSummary) = length(bs.band) # equivalent, usually, to `last(ns)`
+
+function Base.(+)(bs1::BandSummary, bs2::BandSummary)
+    # check bands have identical bandreps & indicator group
+    bs1.brs == bs2.brs || error("bands must have identical band representations")
+    bs1.indicator_group == bs2.indicator_group ||
+                          error("bands must have identical indicator group")
+
+    # consecutiveness check for `band`
+    if last(bs1.band) + 1 == first(bs2.band)
+        band = first(b1):last(bs2)
+    elseif last(bs2.band) + 1 == first(bs1.band)
+        band = first(b2):last(bs1)
+    else
+        throw(DomainError((bs1.band, bs2.band), "bands of bs1 and bs2 must be consecutive"))
+    end
+    n = bs1.n + bs2.n
+    indicators = mod.(bs1.indicators .+ bs2.indicators, bs1.indicator_group)
+    topology = iszero(indicators) ? calc_detailed_topology(n, brs) : NONTRIVIAL
+
+    return BandSummary(topology, band, n, bs1.brs, indicators, bs1.indicator_group)
+end
+
+Base.summary(io::IO, bs::BandSummary) = print(io, length(bs.band), "-band BandSummary:")
+function Base.show(io::IO, ::MIME"text/plain", bs::BandSummary)
+    summary(io, bs)
+    println(io)
+    println(io, " bands:      ", bs.band)
+    print(io,   " n:          ", )
+    Crystalline.prettyprint_symmetryvector(io, bs.n, irreplabels(bs.brs), braces=false)
+    println(io)
+    print(io, " topology:   ", lowercase(string(bs.topology)))
+    if bs.topology == NONTRIVIAL
+        print(io, "\n indicators: ")
+        νs = bs.indicators
+        length(νs) > 1 && print(io, "(")
+        join(io, bs.indicators, ",")
+        length(νs) > 1 && print(io, ")")
+        printstyled(io, " ∈ ", classification(bs.indicator_group), color=:light_black)
+    end
+end
+function Base.show(io::IO, bs::BandSummary) # compact print
+    print(io, length(bs.band), "-band (", lowercase(string(bs.topology)), "): ")
+    Crystalline.prettyprint_symmetryvector(io, bs.n, irreplabels(bs.brs))
+end
+
+# ---------------------------------------------------------------------------------------- #
 
 """
 $(TYPEDSIGNATURES)
@@ -68,29 +122,6 @@ function _find_next_separable_band_grouping(
         isbandstruct(n′, F; allow_nonphysical=true) && return n′, idx
     end
     return nothing
-end
-
-Base.summary(io::IO, bs::BandSummary) = print(io, length(bs.band), "-band BandSummary:")
-function Base.show(io::IO, ::MIME"text/plain", bs::BandSummary)
-    summary(io, bs)
-    println(io)
-    println(io, " bands:      ", bs.band)
-    print(io,   " n:          ", )
-    Crystalline.prettyprint_symmetryvector(io, bs.n, irreplabels(bs.brs), braces=false)
-    println(io)
-    print(io, " topology:   ", lowercase(string(bs.topology)))
-    if bs.topology == NONTRIVIAL
-        print(io, "\n indicators: ")
-        νs = bs.indicators
-        length(νs) > 1 && print(io, "(")
-        join(io, bs.indicators, ",")
-        length(νs) > 1 && print(io, ")")
-        printstyled(io, " ∈ ", classification(bs.indicator_group), color=:light_black)
-    end
-end
-function Base.show(io::IO, bs::BandSummary) # compact print
-    print(io, length(bs.band), "-band (", lowercase(string(bs.topology)), "): ")
-    Crystalline.prettyprint_symmetryvector(io, bs.n, irreplabels(bs.brs))
 end
 
 # ---------------------------------------------------------------------------------------- #
