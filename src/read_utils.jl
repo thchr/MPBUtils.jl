@@ -177,7 +177,9 @@ irrep-sorting of `brs`, given a dictionary of symmetry data `bandirsd` (see
 The returned symmetry vectors are _potentially_ separable, in the sense that they have
 integer symmetry data and a consistent connectivity across **k**-points. Aside from this,
 no account of compatibility relations are included. To test whether a returned symmetry
-vector in fact fulfills compatibility relations, use SymmetryBases.jl's `is_bandstruct`.
+vector in fact fulfills compatibility relations, use SymmetryBases.jl's `isbandstruct`.
+
+If no potentially separable groupings can be found, an empty pair of vectors are returned.
 
 ## Keyword arguments
 - `permd`: a dictionary of permutation vectors (indexed by **k**-vector labels), specifying
@@ -186,8 +188,8 @@ vector in fact fulfills compatibility relations, use SymmetryBases.jl's `is_band
   will be ignored).
 
 ## Example
-Supposing a set of symmetry data `bandirsd` has been extracted by
-[`extract_individual_multiplicities`](@ref), 
+The required irrep data `bandirsd` can be extracted by
+[`extract_individual_multiplicities`](@ref).
 """
 function extract_candidate_symmetryvectors(
             bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Vector{Int}}}},
@@ -202,7 +204,8 @@ function extract_candidate_symmetryvectors(
     
     bands, nds = collect_separable(bandirsd, lgirsd; latestarts)
     μs = length.(bands)
-    isempty(bands) && error("found no isolable band candidates")
+    isempty(bands) && return UnitRange{Int}[], Vector{Int}[]
+
     # construct symmetry vectors, accounting for sorting mismatch specified by `permd`
     Nirs = sum(length, values(permd))
     ns = [Vector{Int}(undef, Nirs+1) for _ in 1:length(bands)]
@@ -213,6 +216,7 @@ function extract_candidate_symmetryvectors(
         end
         ns[b][end] = μ
     end
+
     return bands, ns
 end
 
