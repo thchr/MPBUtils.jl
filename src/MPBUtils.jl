@@ -26,7 +26,7 @@ export prepare_mpbcalc,
        isoval2filling,
        extract_candidate_symmetryvectors,
        analyze_symmetry_data,
-       fix_gamma_irrep
+       fixup_gamma_symmetry!
 
 # ---------------------------------------------------------------------------------------- #
 
