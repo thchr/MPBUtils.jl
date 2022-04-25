@@ -19,7 +19,7 @@ end
 
 Base.length(bs::BandSummary) = length(bs.band) # equivalent, usually, to `last(ns)`
 
-function Base.(+)(bs1::BandSummary, bs2::BandSummary)
+function Base.:+(bs1::BandSummary, bs2::BandSummary)
     # check bands have identical bandreps & indicator group
     bs1.brs == bs2.brs || error("bands must have identical band representations")
     bs1.indicator_group == bs2.indicator_group ||
@@ -27,9 +27,9 @@ function Base.(+)(bs1::BandSummary, bs2::BandSummary)
 
     # consecutiveness check for `band`
     if last(bs1.band) + 1 == first(bs2.band)
-        band = first(b1):last(bs2)
+        band = first(bs1.band):last(bs2.band)
     elseif last(bs2.band) + 1 == first(bs1.band)
-        band = first(b2):last(bs1)
+        band = first(bs2.band):last(bs1.band)
     else
         throw(DomainError((bs1.band, bs2.band), "bands of bs1 and bs2 must be consecutive"))
     end
