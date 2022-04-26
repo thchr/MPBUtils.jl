@@ -35,7 +35,7 @@ function Base.:+(bs1::BandSummary, bs2::BandSummary)
     end
     n = bs1.n + bs2.n
     indicators = mod.(bs1.indicators .+ bs2.indicators, bs1.indicator_group)
-    topology = iszero(indicators) ? calc_detailed_topology(n, brs) : NONTRIVIAL
+    topology = iszero(indicators) ? calc_detailed_topology(n, bs1.brs) : NONTRIVIAL
 
     return BandSummary(topology, band, n, bs1.brs, indicators, bs1.indicator_group)
 end
@@ -176,6 +176,8 @@ function fixup_gamma_symmetry!(
             symeigsd["Γ"][1] .= 1
         elseif polarization == :TE
             symeigsd["Γ"][1] .= det.(rotation.(lg_Γ))
+        else
+            throw(DomainError(polarization, "polarization must be :TE or :TM"))
         end
     elseif D == 3
         ns = Crystalline.rotation_order.(lg_Γ) # rotation order (abs) and handedness (sign)
