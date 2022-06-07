@@ -1,6 +1,112 @@
 # MPBUtils
 
-This package interfaces with [Crystalline.jl](https://github.com/thchr/Crystalline.jl) to setup and export Guile parseable job scripts for the MIT Photonic Bands (MPB) software.
-These utilities were previously an undocumented part of Crystalline.jl prior to v0.3.3.
+MPBUtils.jl interfaces with [Crystalline.jl](https://github.com/thchr/Crystalline.jl) to set up and post-process MPB (MIT Photonic Bands) calculations of band connectivity and topology of photonic crystals using symmetry indicators (also known as topological quantum chemistry).
 
-At present, most functionality in this package is not suitable for public use (e.g., the Guile-parseable job scripts require .ctl files that are not included here).
+The package at present contains two sets of distinct utilities:
+
+1. Utilities to perform band symmetry analysis of photonic structures, assuming the ability to compute the symmetry eigenvalues of the associated photonic band structure (MPB e.g. has this capability).
+2. Exportation and importation of Guile parseable job scripts for the MPB software. This utility is subject to future removal as its effective use requires `.ctl` files that are not included in this repository.
+
+We describe the utilities in point 1 by example below.
+
+# Examples
+
+MPBUtils.jl provides a set of convenience tools to initialize and process symmetry analyses of photonic crystal band structures, aimed at making this possible in an interactive manner via MPB's Python interface (called from Julia via PyCall.jl). To illustrate the functionality, we will consider a simple 2D photonic crystal example.
+
+First, we make the MPB Python interface accessible via Julia, as well as Crystalline.jl and MPBUtils.jl:
+```jl
+# --- load relevant packages ---
+using Crystalline, MPBUtils
+using PyCall
+mp = pyimport("meep")
+mpb = pyimport("meep.mpb")
+```
+
+Then we initialize a 2D photonic crystal calculation:
+```jl
+# --- mpb: geometry & solver initialization ---
+ms = mpb.ModeSolver(
+        num_bands        = 10,
+        resolution       = 32,
+        geometry_lattice = mp.Lattice(size=[1,1]),
+        geometry         = [mp.Block(center=[0,0], size=[0.3,0.3],  # a 15° rotated square
+                                     material=mp.Medium(epsilon=16),
+                                     e1 = [cosd(15), sind(15)],
+                                     e2 = [cosd(105), sind(105)])]
+        )
+ms.init_params(p = mp.TM, reset_fields=true) # solve for TM modes
+```
+
+This structure has the symmetry of plane group p4. In preparation for the following steps, we request relevant group theory related data structures for this plane group via Crystalline.jl:
+```
+# --- band representations, littlegroups, & irreps ---
+D, sgnum = 2, 10 # dimension and plane group (p4, with Z₂ indicator group)
+brs = bandreps(sgnum, D)                          # elementary band representations
+lgs = littlegroups(sgnum, Val(D))                 # little groups
+filter!(((klab, _),) -> klab ∈ klabels(brs), lgs) # restrict to k-points in `brs`
+lgirsd = pick_lgirreps(lgs; timereversal=true)    # small irreps associated with `lgs`
+```
+
+Next, using MPB, we compute the relevant symmetry eigenvalues of the photonic band structure at each of the **k**-points featured in `brs`, `lgs`, and `lgirsd`:
+```jl
+# --- compute band symmetry data ---
+# symmetry eigenvalues ⟨Eₙₖ|gᵢDₙₖ⟩, indexed over k-labels `klab`, band indices `n`, and
+# operations `gᵢ` (index `i`)
+symeigsd = Dict{String, Vector{Vector{ComplexF64}}}() # symmetry eigenvalues ⟨Eₙₖ|gᵢDₙₖ⟩
+for (klab, lg) in lgs
+    kv = mp.Vector3(position(lg)()...)
+    ms.solve_kpoint(kv)
+
+    symeigsd[klab] = [Vector{ComplexF64}(undef, length(lg)) for n in 1:ms.num_bands]
+    for (i, gᵢ) in enumerate(lg)
+        W = mp.Matrix(eachcol(rotation(gᵢ))..., [0,0,1]) # decompose gᵢ = {W|w}
+        w = mp.Vector3(translation(gᵢ)...)
+        symeigs = ms.compute_symmetries(W, w)  # compute ⟨Eₙₖ|gᵢDₙₖ⟩ for all bands
+        setindex!.(symeigsd[klab], symeigs, i) # update container of symmetry eigenvalues
+    end
+end
+```
+
+Because the photonic band structure is singular at zero frequency, MPB will not generally be able to assign the appropriate symmetry eigenvalue at (**k** = Γ, ω = 0).
+To correct for this, we use MPBUtils.jl's `fixup_gamma_symmetry!` on our symmetry eigenvalue data `symeigsd`:
+```jl
+# --- fix singular photonic symmetry content at Γ, ω=0 ---
+fixup_gamma_symmetry!(symeigsd, lgs, :TM) # must specify polarization (:TE or :TM) for `D=2`
+```
+
+Finally, we use the elementary band representations and little group irreps to analyze the symmetry eigenvalue data `symeigsd`, extracting the associated band connectivity and band topology of the separable bands in our calculation:
+```jl
+# --- analyze connectivity and topology of symmetry data ---
+summaries = analyze_symmetry_data(symeigsd, lgirsd, brs)
+```
+
+For the above structure, this returns the following vector of `BandSummaries`:
+```jl
+julia> summaries
+5-element Vector{BandSummary}:
+ 1-band (trivial): [X₁, M₁, Γ₁]
+ 3-band (trivial): [3X₂, M₂+M₃M₄, Γ₁+Γ₃Γ₄]
+ 2-band (fragile): [2X₁, M₃M₄, 2Γ₂]
+ 1-band (nontrivial): [X₁, M₂, Γ₁]
+ 2-band (trivial): [X₁+X₂, M₁+M₂, Γ₃Γ₄]
+```
+
+Each band summary contains detailed information about the associated photonic bands. We can e.g., inspect the 4th band grouping in more detail:
+```jl
+julia> summaries[4]
+1-band BandSummary:
+ bands:      7:7
+ n:          X₁, M₂, Γ₁
+ topology:   nontrivial
+ indicators: 1 ∈ Z₂
+```
+
+Adjacent bands can be "stacked" by addition. E.g., to evaluate the topology of the first three band groupings, we can evaluate:
+```jl
+julia> summaries[1] + summaries[2] + summaries[3] # or simply, sum(summaries[1:3])
+6-band BandSummary:
+ bands:      1:6
+ n:          3X₁+3X₂, M₁+M₂+2M₃M₄, 2Γ₁+2Γ₂+Γ₃Γ₄
+ topology:   trivial
+```
+From which we see that the fragile bands in the 3rd band grouping are trivialized by the trivial bands in the 1st and 2nd band groupings.
