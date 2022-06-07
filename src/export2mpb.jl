@@ -213,28 +213,7 @@ function prepare_mpbcalc(sgnum::Integer, flat::AbstractFourierLattice{D},
                          res, id, kvs, lgs, nbands, isoval, kvecs)
     return String(take!(io))
 end
-
-# TODO: Maybe remove this method? 
-#       Only parts worth keeping are the matching_littlegroups+primitivize parts...
-function gen_symeig_mpbcalc(sgnum, D, εin::Real=10.0, εout::Real=1.0; res::Integer=32, id=1)
-    D ∉ (1,2,3) && _throw_invaliddim(D)
-
-    brs  = bandreps(sgnum, allpaths=false, spinful=false, timereversal=true)
-    lgs  = matching_littlegroups(brs)
-
-    cntr = centering(sgnum, D)
-    flat = modulate(levelsetlattice(sgnum, D, (1,1,1)))
-    Rs   = directbasis(sgnum, D)
-
-    # go to a primitive basis (the lgs from ISOTROPY do not include operations that are 
-    # equivalent in a primitive basis, so we _must_ go to the primitive basis)
-    lgs′  = primitivize.(lgs)
-    flat′ = primitivize(flat, cntr)
-    Rs′   = primitivize(Rs, cntr)
-
-    prepare_mpbcalc(sgnum, flat′, Rs′, εin, εout; res=res, lgs=lgs′, id=id)
-end
-    
+  
 function write_lgs_to_mpb!(io::IO, lgs::AbstractVector{<:LittleGroup{D}}) where D
     # build a unique set of all SymOperations across `lgs` and then find the indices
     # into this set for each lg
