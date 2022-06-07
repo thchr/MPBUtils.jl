@@ -197,4 +197,4 @@ julia> summaries
 Since this package is still in active development, please consider reaching out to us directly if you find the included functionality interesting.
 See also the paper below, for which some of the included functionality was developed:
 
-- T. Christensen, H.C. Po, J.D. Joannopoulos, & M. Soljačić, *Location and topology of the fundamental gap in photonic crystals,* [arXiv:2106.10267 (2021)](https://arxiv.org/abs/2106.10267)
+- T. Christensen, H.C. Po, J.D. Joannopoulos, & M. Soljačić, *Location and topology of the fundamental gap in photonic crystals*, [arXiv:2106.10267 (2021)](https://arxiv.org/abs/2106.10267)
