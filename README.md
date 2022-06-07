@@ -1,6 +1,6 @@
 # MPBUtils
 
-MPBUtils.jl interfaces with [Crystalline.jl](https://github.com/thchr/Crystalline.jl) to set up and post-process MPB (MIT Photonic Bands) calculations of band connectivity and topology of photonic crystals using symmetry indicators (also known as topological quantum chemistry).
+MPBUtils.jl interfaces with [Crystalline.jl](https://github.com/thchr/Crystalline.jl) to set up and post-process [mpb (MIT Photonic Bands)](https://github.com/NanoComp/mpb) calculations of band connectivity and topology of photonic crystals using symmetry indicators (also known as topological quantum chemistry).
 
 ## Installation
 
@@ -14,7 +14,7 @@ pkg> add https://github.com/thchr/MPBUtils.jl
 The package at present contains two sets of distinct utilities:
 
 1. Utilities to perform band symmetry analysis of photonic structures, assuming the ability to compute the symmetry eigenvalues of the associated photonic band structure (MPB e.g. has this capability).
-2. Exportation and importation of Guile parseable job scripts for the MPB software. This utility is subject to future removal as its effective use requires `.ctl` files that are not included in this repository.
+2. Exportation and importation of Guile parseable job scripts for [mpb's](https://github.com/NanoComp/mpb) .ctl interface. This utility is subject to future removal as its effective use requires `.ctl` files that are not included in this repository.
 
 We describe the utilities in point 1 by example below.
 
@@ -22,9 +22,9 @@ We describe the utilities in point 1 by example below.
 
 ### 2D photonic crystal
 
-MPBUtils.jl provides a set of convenience tools to initialize and process symmetry analyses of photonic crystal band structures, aimed at making this possible in an interactive manner via MPB's Python interface (called from Julia via PyCall.jl). To illustrate the functionality, we will first consider a simple 2D photonic crystal example.
+MPBUtils.jl provides a set of convenience tools to initialize and process symmetry analyses of photonic crystal band structures, aimed at making this possible in an interactive manner via [mpb's](https://github.com/NanoComp/mpb) python interface (called from Julia via PyCall.jl). To illustrate the functionality, we will first consider a simple 2D photonic crystal example.
 
-First, we make the MPB Python interface accessible via Julia and also load the Crystalline.jl and MPBUtils.jl packages:
+First, we make the [mpb](https://github.com/NanoComp/mpb) python interface accessible via Julia and also load the Crystalline.jl and MPBUtils.jl packages:
 ```jl
 # --- load relevant packages ---
 using Crystalline, MPBUtils
@@ -32,6 +32,7 @@ using PyCall
 mp = pyimport("meep")
 mpb = pyimport("meep.mpb")
 ```
+Note that, in order to compute symmetry eigenvalues via [mpb's](https://github.com/NanoComp/mpb)  python interface, a relatively recent version of [meep](https://github.com/NanoComp/meep) (≥v1.23.0) is required.
 
 Then we initialize a 2D photonic crystal calculation:
 ```jl
@@ -58,7 +59,7 @@ filter!(((klab, _),) -> klab ∈ klabels(brs), lgs) # restrict to k-points in `b
 lgirsd = pick_lgirreps(lgs; timereversal=true)    # small irreps associated with `lgs`
 ```
 
-Next, using MPB, we compute the relevant symmetry eigenvalues of the photonic band structure at each of the **k**-points featured in `brs`, `lgs`, and `lgirsd`:
+Next, using [mpb](https://github.com/NanoComp/mpb), we compute the relevant symmetry eigenvalues of the photonic band structure at each of the **k**-points featured in `brs`, `lgs`, and `lgirsd`:
 ```jl
 # --- compute band symmetry data ---
 # symmetry eigenvalues ⟨Eₙₖ|gᵢDₙₖ⟩, indexed over k-labels `klab`, band indices `n`, and
@@ -78,7 +79,7 @@ for (klab, lg) in lgs
 end
 ```
 
-Because the photonic band structure is singular at zero frequency, MPB will not generally be able to assign the appropriate symmetry eigenvalue at (**k** = Γ, ω = 0).
+Because the photonic band structure is singular at zero frequency, [mpb](https://github.com/NanoComp/mpb) will not generally be able to assign the appropriate symmetry eigenvalue at (**k** = Γ, ω = 0).
 To correct for this, we use MPBUtils.jl's `fixup_gamma_symmetry!` on our symmetry eigenvalue data `symeigsd`:
 ```jl
 # --- fix singular photonic symmetry content at Γ, ω=0 ---
