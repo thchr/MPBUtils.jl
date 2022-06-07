@@ -47,7 +47,7 @@ ms.init_params(p = mp.TM, reset_fields=true) # solve for TM modes
 ```
 
 This structure has the symmetry of plane group p4. In preparation for the following steps, we request relevant group theory related data structures for this plane group via Crystalline.jl:
-```
+```jl
 # --- band representations, littlegroups, & irreps ---
 D, sgnum = 2, 10 # dimension and plane group (p4, with Z₂ indicator group)
 brs = bandreps(sgnum, D)                          # elementary band representations
