@@ -24,7 +24,7 @@ We describe the utilities in point 1 by example below.
 
 MPBUtils.jl provides a set of convenience tools to initialize and process symmetry analyses of photonic crystal band structures, aimed at making this possible in an interactive manner via MPB's Python interface (called from Julia via PyCall.jl). To illustrate the functionality, we will first consider a simple 2D photonic crystal example.
 
-First, we make the MPB Python interface accessible via Julia, as well as Crystalline.jl and MPBUtils.jl:
+First, we make the MPB Python interface accessible via Julia and also load the Crystalline.jl and MPBUtils.jl packages:
 ```jl
 # --- load relevant packages ---
 using Crystalline, MPBUtils
