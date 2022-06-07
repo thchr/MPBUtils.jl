@@ -6,15 +6,17 @@ MPBUtils.jl interfaces with [Crystalline.jl](https://github.com/thchr/Crystallin
 
 The package is not presently registered (and may well change its name in the future). To install it, go to Julia's `pkg>` prompt (by pressing `]`) and type:
 ```jl
+pkg> add https://github.com/thchr/SymmetryBases.jl
 pkg> add https://github.com/thchr/MPBUtils.jl
 ```
+SymmetryBases.jl is a dependency of MPBUtils.jl (which also not registered, and so also requires manual installation).
 
 ## Functionality
 
 The package at present contains two sets of distinct utilities:
 
 1. Utilities to perform band symmetry analysis of photonic structures, assuming the ability to compute the symmetry eigenvalues of the associated photonic band structure (MPB e.g. has this capability).
-2. Exportation and importation of Guile parseable job scripts for [mpb's](https://github.com/NanoComp/mpb) .ctl interface. This utility is subject to future removal as its effective use requires `.ctl` files that are not included in this repository.
+2. Exportation and importation of Guile parseable job scripts for [mpb](https://github.com/NanoComp/mpb)'s .ctl interface. This utility is subject to future removal as its effective use requires `.ctl` files that are not included in this repository.
 
 We describe the utilities in point 1 by example below.
 
@@ -22,7 +24,7 @@ We describe the utilities in point 1 by example below.
 
 ### 2D photonic crystal
 
-MPBUtils.jl provides a set of convenience tools to initialize and process symmetry analyses of photonic crystal band structures, aimed at making this possible in an interactive manner via [mpb's](https://github.com/NanoComp/mpb) python interface (called from Julia via PyCall.jl). To illustrate the functionality, we will first consider a simple 2D photonic crystal example.
+MPBUtils.jl provides a set of convenience tools to initialize and process symmetry analyses of photonic crystal band structures, aimed at making this possible in an interactive manner via [mpb](https://github.com/NanoComp/mpb)'s python interface (called from Julia via PyCall.jl). To illustrate the functionality, we will first consider a simple 2D photonic crystal example.
 
 First, we make the [mpb](https://github.com/NanoComp/mpb) python interface accessible via Julia and also load the Crystalline.jl and MPBUtils.jl packages:
 ```jl
@@ -32,7 +34,7 @@ using PyCall
 mp = pyimport("meep")
 mpb = pyimport("meep.mpb")
 ```
-Note that, in order to compute symmetry eigenvalues via [mpb's](https://github.com/NanoComp/mpb)  python interface, a relatively recent version of [meep](https://github.com/NanoComp/meep) (≥v1.23.0) is required.
+Note that, in order to compute symmetry eigenvalues via [mpb](https://github.com/NanoComp/mpb)'s  python interface, a relatively recent version of [meep](https://github.com/NanoComp/meep) (≥v1.23.0) is required.
 
 Then we initialize a 2D photonic crystal calculation:
 ```jl
