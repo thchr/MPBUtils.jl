@@ -2,6 +2,15 @@
 
 MPBUtils.jl interfaces with [Crystalline.jl](https://github.com/thchr/Crystalline.jl) to set up and post-process MPB (MIT Photonic Bands) calculations of band connectivity and topology of photonic crystals using symmetry indicators (also known as topological quantum chemistry).
 
+## Installation
+
+The package is not presently registered (and may well change its name in the future). To install it, go to Julia's `pkg>` prompt (by pressing `]`) and type:
+```jl
+pkg> add https://github.com/thchr/MPBUtils.jl
+```
+
+## Functionality
+
 The package at present contains two sets of distinct utilities:
 
 1. Utilities to perform band symmetry analysis of photonic structures, assuming the ability to compute the symmetry eigenvalues of the associated photonic band structure (MPB e.g. has this capability).
@@ -9,7 +18,7 @@ The package at present contains two sets of distinct utilities:
 
 We describe the utilities in point 1 by example below.
 
-# Examples
+## Examples
 
 MPBUtils.jl provides a set of convenience tools to initialize and process symmetry analyses of photonic crystal band structures, aimed at making this possible in an interactive manner via MPB's Python interface (called from Julia via PyCall.jl). To illustrate the functionality, we will consider a simple 2D photonic crystal example.
 
