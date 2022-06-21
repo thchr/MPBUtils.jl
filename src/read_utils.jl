@@ -10,14 +10,14 @@ bands can be added, corresponding to stacking of bands.
 """
 struct BandSummary
     topology        :: TopologyKind
-    band            :: UnitRange{Int}
+    bands            :: UnitRange{Int}
     n               :: Vector{Int}
     brs             :: BandRepSet
     indicators      :: Vector{Int}
     indicator_group :: Vector{Int}
 end
 
-Base.length(bs::BandSummary) = length(bs.band) # equivalent, usually, to `last(ns)`
+Base.length(bs::BandSummary) = length(bs.bands) # equivalent, usually, to `last(ns)`
 
 function Base.:+(bs1::BandSummary, bs2::BandSummary)
     # check bands have identical bandreps & indicator group
@@ -26,12 +26,12 @@ function Base.:+(bs1::BandSummary, bs2::BandSummary)
                           error("bands must have identical indicator group")
 
     # consecutiveness check for `band`
-    if last(bs1.band) + 1 == first(bs2.band)
-        band = first(bs1.band):last(bs2.band)
-    elseif last(bs2.band) + 1 == first(bs1.band)
-        band = first(bs2.band):last(bs1.band)
+    if last(bs1.bands) + 1 == first(bs2.bands)
+        band = first(bs1.bands):last(bs2.bands)
+    elseif last(bs2.bands) + 1 == first(bs1.bands)
+        band = first(bs2.bands):last(bs1.bands)
     else
-        throw(DomainError((bs1.band, bs2.band), "bands of bs1 and bs2 must be consecutive"))
+        throw(DomainError((bs1.bands, bs2.bands), "bands of bs1 and bs2 must be consecutive"))
     end
     n = bs1.n + bs2.n
     indicators = mod.(bs1.indicators .+ bs2.indicators, bs1.indicator_group)
@@ -40,11 +40,11 @@ function Base.:+(bs1::BandSummary, bs2::BandSummary)
     return BandSummary(topology, band, n, bs1.brs, indicators, bs1.indicator_group)
 end
 
-Base.summary(io::IO, bs::BandSummary) = print(io, length(bs.band), "-band BandSummary:")
+Base.summary(io::IO, bs::BandSummary) = print(io, length(bs.bands), "-band BandSummary:")
 function Base.show(io::IO, ::MIME"text/plain", bs::BandSummary)
     summary(io, bs)
     println(io)
-    println(io, " bands:      ", bs.band)
+    println(io, " bands:      ", bs.bands)
     print(io,   " n:          ", )
     Crystalline.prettyprint_symmetryvector(io, bs.n, irreplabels(bs.brs), braces=false)
     println(io)
@@ -59,7 +59,7 @@ function Base.show(io::IO, ::MIME"text/plain", bs::BandSummary)
     end
 end
 function Base.show(io::IO, bs::BandSummary) # compact print
-    print(io, length(bs.band), "-band (", lowercase(string(bs.topology)), "): ")
+    print(io, length(bs.bands), "-band (", lowercase(string(bs.topology)), "): ")
     Crystalline.prettyprint_symmetryvector(io, bs.n, irreplabels(bs.brs))
 end
 
