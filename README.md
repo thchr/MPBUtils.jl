@@ -9,7 +9,7 @@ The package is not presently registered (and may well change its name in the fut
 pkg> add https://github.com/thchr/SymmetryBases.jl
 pkg> add https://github.com/thchr/MPBUtils.jl
 ```
-SymmetryBases.jl is a dependency of MPBUtils.jl (which also not registered, and so also requires manual installation).
+[SymmetryBases.jl](https://github.com/thchr/SymmetryBases.jl) is a dependency of MPBUtils.jl (which also not registered, and so also requires manual installation).
 
 ## Functionality
 
