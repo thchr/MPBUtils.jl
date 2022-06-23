@@ -19,8 +19,7 @@ F = smith(B)
 bandirsd, lgirsd = extract_individual_multiplicities(
                         calcname;
                         timereversal,
-                        dir = "../../mpb-ctl/output/sg147/",
-                        atol=2e-2)
+                        dir = "../../mpb-ctl/output/sg147/")
 length(lgirsd) ≠ length(klabels(sb)) && error("missing k-point data")
 
 # extract the _potentially_ separable symmetry vectors `ns` and their band-ranges `bands`

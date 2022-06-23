@@ -76,8 +76,15 @@ $(TYPEDSIGNATURES)
 Return the compatibility-allowed groupings of bands along with their topological properties
 as a `Vector{BandSummary}`.
 
+## Keyword arguments
+
 Keyword arguments `multiplicities_kwargs` are forwarded to
-[`find_individual_multiplicities`](@ref).
+[`find_individual_multiplicities`](@ref), which determines the irrep multiplicities from
+the symmetry eigenvalues `symeigsd`.
+
+For low-resolution calculations (i.e., if `symeigsd` has appreciable numerical error),
+it may be worthwhile to increase the absolute tolerance `atol` (default, $MULTIPLICITY_ATOL)
+used by [`find_individual_multiplicities`](@ref).
 """
 function analyze_symmetry_data(
             symeigsd::Dict{String, Vector{Vector{ComplexF64}}},
@@ -507,7 +514,7 @@ end
 
 function extract_multiplicities(calcname::String, bands;
             timereversal::Bool=true, isprimitive::Bool=true,
-            atol::Real=DEFAULT_ATOL, αβγ::AbstractVector{<:Real}=TEST_αβγ,
+            atol::Real=MULTIPLICITY_ATOL, αβγ::AbstractVector{<:Real}=TEST_αβγ,
             read_kwargs...)                                     # ... convenience accessor
     
     symeigsd, lgd = read_symdata(calcname; αβγ, isprimitive, read_kwargs...)
@@ -590,15 +597,16 @@ bands, see [`collect_separable`](@ref) and [`merge_to_symvectors`](@ref).
   (meaning, start at band `D` and skip the first `D-1` bands at Γ).
 - `timereversal` & `isprimitive`: forwarded to [`read_symdata`](@ref) and 
   [`extract_multiplicities`](@ref).
-- `atol` & `αβγ`: forwarded to [`read_symdata`](@ref) and [`find_representation`](@ref).
+- `atol` & `αβγ`: forwarded to [`find_individual_multiplicities`](@ref).
 - `read_kwargs`: additional keyword arguments forwarded to [`read_symdata`](@ref).
 
 ## Example
 
 ```jl
 julia> calcname = "dim3-sg147-symeigs_6936-res32"
-julia> bandirsd, lgirsd = extract_individual_multiplicities(calcname,
-                        timereversal=true, dir = "../../mpb-ctl/output/", atol=1e-3)
+julia> bandirsd, lgirsd = 
+    extract_individual_multiplicities(calcname,
+                                      timereversal=true, dir = "../../mpb-ctl/output/")
 ```
 The result can be pretty-printed by e.g.:
 ```
@@ -610,7 +618,7 @@ julia> Dict(klab => [bands => symvec2string(n, irlabs[klab]; braces=false)
 """
 function extract_individual_multiplicities(calcname::String;
             timereversal::Bool=true, isprimitive::Bool=true,
-            atol::Real=DEFAULT_ATOL, αβγ::AbstractVector{<:Real}=TEST_αβγ,
+            atol::Real=MULTIPLICITY_ATOL, αβγ::AbstractVector{<:Real}=TEST_αβγ,
             latestarts::Dict{String,Int}=Dict("Γ" => parse_dim(calcname)),
             kwargs...)
 
@@ -623,9 +631,28 @@ function extract_individual_multiplicities(calcname::String;
     return bandirsd, lgirsd
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Return a `Dict{String,Vector{Int}} of irrep multiplicities at each **k**-point from the
+provided symmetry eigenvalues `symeigsd` and the little group irreps `lgirsd`.
+
+## Keyword arguments
+- `atol`: absolute tolerance used in computing the irrep multiplicities. Forwarded to
+          Crystalline's `find_representation` and also used as a maximal allowable deviation
+          from computed floating point multiplicities to the associated nearest integer
+          values. Defaults to $MULTIPLICITY_ATOL.
+- `αβγ`: fractional parameters provided to any little group irreps with nonspecial
+         **k**-points.
+- `latestarts`: see description in [`extract_individual_multiplicities`]; defaults to
+                `Dict("Γ" => D)`.
+- `maxresnorm`: forwarded to Crystalline's `find_representation`. Maximum allowable residual
+                norm difference between provided symmetry eigenvalues and the symmetry
+                eigenvalues associated with the computed floating point multiplicities.
+"""
 function find_individual_multiplicities(symeigsd::Dict{String,<:AbstractVector},
             lgirsd::Dict{String,Vector{LGIrrep{D}}};
-            atol::Real=1e-2,
+            atol::Real=MULTIPLICITY_ATOL,
             αβγ::AbstractVector{<:Real}=TEST_αβγ,
             latestarts::Dict{String,Int}=Dict("Γ" => D),
             maxresnorm::Real=1e-3) where D

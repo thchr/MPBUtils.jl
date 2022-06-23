@@ -3,7 +3,6 @@ module MPBUtils
 
 using Crystalline
 using Crystalline: AbstractFourierLattice,
-                   DEFAULT_ATOL,
                    TEST_αβγ
 using StaticArrays
 using SymmetryBases
@@ -29,6 +28,8 @@ export prepare_mpbcalc,
        BandSummary
 
 # ---------------------------------------------------------------------------------------- #
+
+const MULTIPLICITY_ATOL = 2e-2 # allow up to 2% error in irrep multiplicity by default
 
 include("utils.jl")
 include("filling2isoval.jl")
