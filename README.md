@@ -97,7 +97,7 @@ Finally, we use the elementary band representations and little group irreps to a
 summaries = analyze_symmetry_data(symeigsd, lgirsd, brs)
 ```
 
-For the above structure, this returns the following vector of `BandSummaries`:
+For the above structure, this returns the following vector of `BandSummary`s:
 ```jl
 julia> summaries
 5-element Vector{BandSummary}:
