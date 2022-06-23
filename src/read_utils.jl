@@ -10,7 +10,7 @@ bands can be added, corresponding to stacking of bands.
 """
 struct BandSummary
     topology        :: TopologyKind
-    bands            :: UnitRange{Int}
+    bands           :: UnitRange{Int}
     n               :: Vector{Int}
     brs             :: BandRepSet
     indicators      :: Vector{Int}
@@ -38,6 +38,11 @@ function Base.:+(bs1::BandSummary, bs2::BandSummary)
     topology = iszero(indicators) ? calc_detailed_topology(n, bs1.brs) : NONTRIVIAL
 
     return BandSummary(topology, band, n, bs1.brs, indicators, bs1.indicator_group)
+end
+
+function Base.:(==)(bs1::BandSummary, bs2::BandSummary)
+    return (bs1.n == bs2.n && bs1.bands == bs2.bands && 
+            num(bs1.brs) == num(bs2.brs) && irreplabels(bs1.brs) == irreplabels(bs2.brs))
 end
 
 Base.summary(io::IO, bs::BandSummary) = print(io, length(bs.bands), "-band BandSummary:")
@@ -84,8 +89,8 @@ function analyze_symmetry_data(
     F = smith(B)
 
     bandirsd = find_individual_multiplicities(symeigsd, lgirsd;
-                                              multiplicities_kwargs...,
-                                              latestarts = Dict{String, Int}())
+                                              latestarts = Dict{String, Int}(),
+                                              multiplicities_kwargs...)
     bands, ns = extract_candidate_symmetryvectors(bandirsd, lgirsd, brs;
                                                   latestarts = Dict{String, Int}())
 
