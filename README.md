@@ -56,12 +56,13 @@ This structure has the symmetry of [plane group 10 (p4)](https://www.cryst.ehu.e
 # --- band representations, littlegroups, & irreps ---
 D, sgnum = 2, 10 # dimension and plane group (p4, with Z₂ indicator group)
 brs = bandreps(sgnum, D)                          # elementary band representations
-lgs = primitivize(littlegroups(sgnum, Val(D)))    # little groups
+lgs = littlegroups(sgnum, Val(D))                 # little groups
 filter!(((klab, _),) -> klab ∈ klabels(brs), lgs) # restrict to k-points in `brs`
+map!(primitivize, values(lgs))                    # convert to primitive setting
 lgirsd = pick_lgirreps(lgs; timereversal=true)    # small irreps associated with `lgs`
 ```
 
-Note that we convert the little group operations and **k**-ponits in `lgs` to a primitive setting via `primitivize`; this is redundant in plane group 10 (p4), as it is already primitive. We note it it explicitly here to emphasize that this is necessary in the general case (for centered Bravais lattices): symmetry eigenvalues should be computed for a primitive unit cell, with operations and **k**-points referred to the corresponding primitive basis.
+Note that we convert the little group operations and **k**-ponits in `lgs` from a conventional to a primitive setting via `primitivize`; this is redundant in plane group 10 (p4), as its conventional setting already primitive. We note it it explicitly here to emphasize that this is necessary in the general case (for centered Bravais lattices): symmetry eigenvalues should be computed for a primitive unit cell, with operations and **k**-points referred to the corresponding primitive basis.
 
 Next, using [mpb](https://github.com/NanoComp/mpb), we compute the relevant symmetry eigenvalues of the photonic band structure at each of the **k**-points featured in `brs`, `lgs`, and `lgirsd`:
 ```jl
@@ -157,8 +158,9 @@ ms.init_params(p=mp.ALL, reset_fields=true)
 # --- band representations, littlegroups, & irreps ---
 sgnum = 81                                        # P-4 (Z₂×Z₂ symmetry indicator group)
 brs = bandreps(sgnum)                             # elementary band representations
-lgs = primitivize(littlegroups(sgnum))            # little groups
+lgs = littlegroups(sgnum)                         # little groups
 filter!(((klab, _),) -> klab ∈ klabels(brs), lgs) # restrict to k-points in `brs`
+map!(primitivize, values(lgs))                    # convert to primitive setting
 lgirsd = pick_lgirreps(lgs; timereversal=true)    # small irreps associated with `lgs`
 
 # --- compute band symmetry data ---
@@ -182,7 +184,7 @@ end
 fixup_gamma_symmetry!(symeigsd, lgs)
 
 # --- analyze connectivity and topology of symmetry data ---
-summaries = analyze_symmetry_data(symeigsd, lgirsd, brs)`
+summaries = analyze_symmetry_data(symeigsd, lgirsd, brs)
 ```
 
 Producing the result:
