@@ -51,7 +51,7 @@ ms = mpb.ModeSolver(
 ms.init_params(p = mp.TM, reset_fields=true) # solve for TM modes
 ```
 
-This structure has the symmetry of [plane group 10 (p4)](https://www.cryst.ehu.es/cgi-bin/plane/programs/nph-plane_getgen?gnum=10&type=plane&what=gp). In preparation for the following steps, we request relevant group theory related data structures for this plane group via Crystalline.jl:
+This structure has the symmetry of [plane group 10 (p4)](https://www.cryst.ehu.es/cgi-bin/plane/programs/nph-plane_getgen?gnum=10&type=plane&what=gp). In preparation for the following steps, we first obtain relevant group theory related data for this plane group via Crystalline.jl:
 ```jl
 # --- band representations, littlegroups, & irreps ---
 D, sgnum = 2, 10 # dimension and plane group (p4, with Z₂ indicator group)
@@ -62,7 +62,7 @@ map!(primitivize, values(lgs))                    # convert to primitive setting
 lgirsd = pick_lgirreps(lgs; timereversal=true)    # small irreps associated with `lgs`
 ```
 
-Note that we convert the little group operations and **k**-ponits in `lgs` from a conventional to a primitive setting via `primitivize`; this is redundant in plane group 10 (p4), as its conventional setting already primitive. We note it it explicitly here to emphasize that this is necessary in the general case (for centered Bravais lattices): symmetry eigenvalues should be computed for a primitive unit cell, with operations and **k**-points referred to the corresponding primitive basis.
+Note that we convert the little group operations and **k**-points in `lgs` from a conventional to a primitive setting via `primitivize`; this is redundant in plane group 10 (p4), as its conventional setting already primitive. We note it explicitly here to emphasize that this is necessary in the general case (for centered Bravais lattices): symmetry eigenvalues should be computed for a primitive unit cell, with operations and **k**-points referred to the corresponding primitive basis.
 
 Next, using [mpb](https://github.com/NanoComp/mpb), we compute the relevant symmetry eigenvalues of the photonic band structure at each of the **k**-points featured in `brs`, `lgs`, and `lgirsd`:
 ```jl
