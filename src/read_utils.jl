@@ -35,7 +35,8 @@ function Base.:+(bs1::BandSummary, bs2::BandSummary)
     end
     n = bs1.n + bs2.n
     indicators = mod.(bs1.indicators .+ bs2.indicators, bs1.indicator_group)
-    topology = iszero(indicators) ? calc_detailed_topology(n, bs1.brs) : NONTRIVIAL
+    topology = !iszero(indicators) ? NONTRIVIAL :
+                            calc_detailed_topology(n, bs1.brs; allow_nonphysical=true)
 
     return BandSummary(topology, band, n, bs1.brs, indicators, bs1.indicator_group)
 end
