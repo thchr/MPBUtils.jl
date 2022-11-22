@@ -1,6 +1,6 @@
 # returns a lazy "vector" of the (real) value of `flat` over the entire unit cell, using
 # `nsamples` per dimension; avoids double counting at unit cell edges
-function _lazy_fourier_eval_over_uc_as_vector(flat::AbstractFourierLattice{D}, nsamples::Int64) where D
+function _lazy_fourier_eval_over_uc_as_vector(flat::AbstractFourierLattice{D}, nsamples::Integer) where D
     step = 1.0/nsamples
     samples = range(-0.5, 0.5-step, length=nsamples) # `-step` to avoid double counting ±0.5 (cf. periodicity)
     if D == 2
@@ -19,7 +19,7 @@ isosurface encloses a fraction `filling` of the unit cell.
 The keyword argument `nsamples` specifies the grid-resolution used in evaluating this
 answer (via `quantile`).
 """
-function filling2isoval(flat::AbstractFourierLattice{D}, filling::Real=0.5, nsamples::Int64=51) where D
+function filling2isoval(flat::AbstractFourierLattice{D}, filling::Real=0.5, nsamples::Integer=51) where D
     itr = _lazy_fourier_eval_over_uc_as_vector(flat, nsamples)
     return quantile(itr, filling)
 end
@@ -33,7 +33,7 @@ isovalue `isoval`.
 The keyword argument `nsamples` specifies the grid-resolution used in evaluating this
 answer (using staircase integration).
 """
-function isoval2filling(flat::AbstractFourierLattice{D}, isoval::Real, nsamples::Int64=51) where D
+function isoval2filling(flat::AbstractFourierLattice{D}, isoval::Real, nsamples::Integer=51) where D
     itr = _lazy_fourier_eval_over_uc_as_vector(flat, nsamples)
     return count(<(isoval), itr)/nsamples^D
 end
