@@ -561,7 +561,7 @@ function align_operators!(lgirs::Vector{LGIrrep{D}}, lg::LittleGroup{D}) where D
     length(lg) == length(lg′) || error("mismatched little groups")
     # find permutation to "realign" operator sorting between `lgd[klab]` and `lgirsd[klab]`
     perm = Vector{Int}(undef, length(lg))
-    for op in lg
+    for (i, op) in enumerate(lg)
         idx = findfirst(==(op), lg′)
         idx === nothing && error("could not align operators")   
         perm[i] = idx
