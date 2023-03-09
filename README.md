@@ -58,7 +58,7 @@ D, sgnum = 2, 10 # dimension and plane group (p4, with Z₂ indicator group)
 brs = bandreps(sgnum, D)                          # elementary band representations
 lgs = littlegroups(sgnum, Val(D))                 # little groups
 filter!(((klab, _),) -> klab ∈ klabels(brs), lgs) # restrict to k-points in `brs`
-map!(primitivize, values(lgs))                    # convert to primitive setting
+map!(lg -> primitivize(lg, false), values(lgs))   # convert to primitive setting (without reducing translations)
 lgirsd = pick_lgirreps(lgs; timereversal=true)    # small irreps associated with `lgs`
 ```
 
@@ -160,7 +160,7 @@ sgnum = 81                                        # P-4 (Z₂×Z₂ symmetry ind
 brs = bandreps(sgnum)                             # elementary band representations
 lgs = littlegroups(sgnum)                         # little groups
 filter!(((klab, _),) -> klab ∈ klabels(brs), lgs) # restrict to k-points in `brs`
-map!(primitivize, values(lgs))                    # convert to primitive setting
+map!(lg -> primitivize(lg, false), values(lgs))   # convert to primitive setting (without reducing translations)
 lgirsd = pick_lgirreps(lgs; timereversal=true)    # small irreps associated with `lgs`
 
 # --- compute band symmetry data ---
