@@ -89,7 +89,7 @@ used by [`find_individual_multiplicities`](@ref).
 """
 function analyze_symmetry_data(
             symeigsd::Dict{String, Vector{Vector{ComplexF64}}},
-            lgirsd::Dict{String, Vector{LGIrrep{D}}},
+            lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}},
             brs::BandRepSet;
             multiplicities_kwargs...) where D
 
@@ -239,7 +239,7 @@ The required irrep data `bandirsd` can be extracted by
 """
 function extract_candidate_symmetryvectors(
             bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Vector{Int}}}},
-            lgirsd::Dict{String, <:Vector{<:LGIrrep{D}}},
+            lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}},
             brs=nothing;
             permd::Dict{String, Vector{Int}}=_default_permutation(lgirsd, brs),
             latestarts::Dict{String, Int}=Dict("Γ" => D)
@@ -654,8 +654,8 @@ provided symmetry eigenvalues `symeigsd` and the little group irreps `lgirsd`.
                 norm difference between provided symmetry eigenvalues and the symmetry
                 eigenvalues associated with the computed floating point multiplicities.
 """
-function find_individual_multiplicities(symeigsd::Dict{String,<:AbstractVector},
-            lgirsd::Dict{String,Vector{LGIrrep{D}}};
+function find_individual_multiplicities(symeigsd::Dict{String, <:AbstractVector},
+            lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}};
             atol::Real=MULTIPLICITY_ATOL,
             αβγ::AbstractVector{<:Real}=TEST_αβγ,
             latestarts::Dict{String,Int}=Dict("Γ" => D),
@@ -699,7 +699,7 @@ Return the "projected" symmetry-vectors for potentially separable bands using `b
 and [`pick_lgirreps`](@ref)).
 """
 function collect_separable(bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Vector{Int}}}},
-                lgirsd::Dict{String, Vector{LGIrrep{D}}};
+                lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}};
                 latestarts::Dict{String, Int}=Dict("Γ" => D)) where D
 
     # Check for empty values in bandirsd and return gracefully. Otherwise the mapreduce
