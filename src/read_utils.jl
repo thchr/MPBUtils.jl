@@ -295,7 +295,7 @@ function find_permutation(lgirsd::Dict{String, <:AbstractVector{<:LGIrrep}}, brs
     return find_permutation(lgirsd, klabels(brs), irreplabels(brs))
 end
 function find_permutation(
-            lgirsd::Dict{String, <:Vector{<:LGIrrep}},
+            lgirsd::Dict{String, <:AbstractVector{<:LGIrrep}},
             klabs::Vector{String},
             irlabs::Vector{String})
     # find permutation vectors between irreps in `lgirsd` and those in `irlabs` and `klabs`;
@@ -315,7 +315,7 @@ function find_permutation(
 end
 
 function _default_permutation(
-            lgirsd::Dict{String, <:Vector{<:LGIrrep}},
+            lgirsd::Dict{String, <:AbstractVector{<:LGIrrep}},
             brs::Union{Nothing, BandRepSet})
     brs === nothing && error("must supply either `brs` or `permd`")
     return find_permutation(lgirsd, brs)
