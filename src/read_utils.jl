@@ -291,7 +291,7 @@ julia> all([label.(lgirsd[klab]) == irreplabels(brs)[idxs] for (klab, idxs) in p
 true
 ```
 """
-function find_permutation(lgirsd::Dict{String, <:Vector{<:LGIrrep}}, brs::BandRepSet)
+function find_permutation(lgirsd::Dict{String, <:AbstractVector{<:LGIrrep}}, brs::BandRepSet)
     return find_permutation(lgirsd, klabels(brs), irreplabels(brs))
 end
 function find_permutation(
@@ -406,7 +406,7 @@ end
 # ---------------------------------------------------------------------------------------- #
 
 
-function symeigs2irreps(symeigs::AbstractVector, lgirs::Vector{LGIrrep{D}}, bands;
+function symeigs2irreps(symeigs::AbstractVector, lgirs::AbstractVector{LGIrrep{D}}, bands;
             αβγ::AbstractVector{<:Real}=TEST_αβγ, kwargs...) where D
                                                                         # ... root accessor
     D < length(αβγ) && (αβγ = αβγ[1:D])
@@ -448,7 +448,7 @@ julia> extract_multiplicities(symeigsd, lgirsd, bands)
 ```
 """
 function extract_multiplicities(symeigsd::Dict{String,<:Any}, 
-            lgirsd::Dict{String,Vector{LGIrrep{D}}},
+            lgirsd::Dict{String,<:AbstractVector{LGIrrep{D}}},
             bands=eachindex(first(values(symeigsd)));
             kwargs...) where D                                  # ... main accessor
 
