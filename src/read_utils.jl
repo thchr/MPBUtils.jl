@@ -577,7 +577,7 @@ function align_operators!(lgirs::Vector{LGIrrep{D}}, lg::LittleGroup{D}) where D
     @info "Permuted little group irreps to ensure aligned sorting" klab
     return lgirs
 end
-align_operators!(lgirs::IrrepCollection{LGIrrep{D}}) = align_operators!(lgirs.irs)
+align_operators!(lgirs::IrrepCollection) = align_operators!(lgirs.irs)
 
 # ---------------------------------------------------------------------------------------- #
 
