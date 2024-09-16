@@ -93,7 +93,7 @@ function analyze_symmetry_data(
             brs::BandRepSet;
             multiplicities_kwargs...) where D
 
-    B = matrix(brs)
+    B = stack(brs)
     F = smith(B)
 
     bandirsd = find_individual_multiplicities(symeigsd, lgirsd;
@@ -276,7 +276,7 @@ and positions in `brs` relative to those in `lgirsd`.
 ```jl
 julia> using Crystalline, MPBUtils
 
-julia> brs = bandreps(210, 3);    # plane group 2
+julia> brs = bandreps(210, 3);
 
 julia> lgirsd = lgirreps(210, 3);
 
@@ -577,8 +577,8 @@ function align_operators!(lgirs::Vector{LGIrrep{D}}, lg::LittleGroup{D}) where D
     @info "Permuted little group irreps to ensure aligned sorting" klab
     return lgirs
 end
-function align_operators!(lgirs::IrrepCollection{LGIrrep{D}}, lg::LittleGroup{D}) where D
-    IrrepCollection(align_operators!(lgirs.irs, lg))
+function align_operators!(lgirs::Collection{LGIrrep{D}}, lg::LittleGroup{D}) where D
+    Collection(align_operators!(lgirs.irs, lg))
 end
 
 # ---------------------------------------------------------------------------------------- #

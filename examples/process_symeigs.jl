@@ -12,7 +12,7 @@ calcname = "dim3-sg147-breaktr-detfix-g1.0_symeigs_"*string(id)*"-res32"
 
 # --- hilbert/ebr bases ---
 sb, brs = compatibility_basis(sgnum, 3; timereversal)
-B = matrix(brs)
+B = stack(brs)
 F = smith(B)
 
 # --- load and process data ---

@@ -1,7 +1,7 @@
 name = "MPBUtils"
 uuid = "a5feb4ea-5495-4677-96f8-dddb76c9eb4c"
 authors = ["Thomas Christensen <tchr@mit.edu> and contributors"]
-version = "0.1.11"
+version = "0.1.12"
 
 [deps]
 Crystalline = "ae5e2be0-a263-11e9-351e-f94dad1eb351"
@@ -14,8 +14,8 @@ Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 SymmetryBases = "cb68ded9-7e8c-45d3-bc66-19b5867c0467"
 
 [compat]
-Crystalline = "0.5.3"
-julia = "1.6"
+Crystalline = "0.6"
+julia = "1.9"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
