@@ -578,7 +578,7 @@ function align_operators!(lgirs::Vector{LGIrrep{D}}, lg::LittleGroup{D}) where D
     return lgirs
 end
 function align_operators!(lgirs::Collection{LGIrrep{D}}, lg::LittleGroup{D}) where D
-    Collection(align_operators!(lgirs.irs, lg))
+    Collection(align_operators!(lgirs.vs, lg))
 end
 
 # ---------------------------------------------------------------------------------------- #
