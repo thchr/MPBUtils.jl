@@ -88,19 +88,17 @@ it may be worthwhile to increase the absolute tolerance `atol` (default, $MULTIP
 used by [`find_individual_multiplicities`](@ref).
 """
 function analyze_symmetry_data(
-            symeigsd::Dict{String, Vector{Vector{ComplexF64}}},
-            lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}},
-            brs::BandRepSet;
-            multiplicities_kwargs...) where D
+    symeigsd::Dict{String, Vector{Vector{ComplexF64}}},
+    lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}},
+    brs::BandRepSet;
+    multiplicities_kwargs...
+) where D
 
     B = stack(brs)
     F = smith(B)
 
-    bandirsd = find_individual_multiplicities(symeigsd, lgirsd;
-                                              latestarts = Dict{String, Int}(),
-                                              multiplicities_kwargs...)
-    bands, ns = extract_candidate_symmetryvectors(bandirsd, lgirsd, brs;
-                                                  latestarts = Dict{String, Int}())
+    bandirsd = find_individual_multiplicities(symeigsd, lgirsd; multiplicities_kwargs...)
+    bands, ns = extract_candidate_symmetryvectors(bandirsd, lgirsd, brs)
 
     band_summaries = BandSummary[]
     idx = 1
@@ -125,7 +123,10 @@ function analyze_symmetry_data(
 end
 
 function _find_next_separable_band_grouping(
-            ns::AbstractVector{<:AbstractVector{<:Integer}}, F::Smith, idx::Integer=1)
+    ns::AbstractVector{<:AbstractVector{<:Integer}},
+    F::Smith,
+    idx::Integer=1
+)
 
     idx > length(ns) && return nothing
     n′ = ns[idx]
@@ -147,8 +148,8 @@ Mutate the lowest `D-1` Γ-point entries of the provided dictionary of symmetry 
 The mutated entries represent a valid, consistent choice of symmetry eigenvalues, following
 the operator sorting of `lg_Γ`. Returns the mutated `symeigsd`.
 
-In `D=2`, the polarization choice (transverse electric `:TE` or transverse magnetic `:TM`)
-must be specified as the `polarization` argument.
+For `D = 2`, the polarization choice (transverse electric `:TE` or transverse magnetic
+`:TM`) must be specified as the `polarization` argument.
 
 ## Details
 
@@ -176,13 +177,15 @@ x^{\\text{TM}}_{\\Gamma}(g) = 1,
 x^{\\text{TE}}_{\\Gamma}(g) = \\det(g).
 ``
 
-[1]: Christensen, Po, Joannopoulos, & Soljacic, Location and topology of the fundamental
-     gap in photonic crystals, [arXiv2106.10267 (2021)](arxiv.org/abs/2106.10267).
+[1]: Christensen, Po, Joannopoulos, & Soljacic, *Location and topology of the fundamental
+     gap in photonic crystals*,
+     [Physical Review X **12** 021066 (2022)](https://doi.org/10.1103/PhysRevX.12.021066).
 """
 function fixup_gamma_symmetry!(
-            symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, # ← mutated by call
-            lg_Γ::AbstractVector{SymOperation{D}},
-            polarization::Union{Symbol, Nothing} = nothing) where D
+    symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, # ← mutated by call
+    lg_Γ::AbstractVector{SymOperation{D}},
+    polarization::Union{Symbol, Nothing} = nothing
+) where D
 
     if D == 2
         if polarization == :TM
@@ -203,9 +206,10 @@ function fixup_gamma_symmetry!(
     return symeigsd
 end
 function fixup_gamma_symmetry!(
-            symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, # ← mutated by call
-            lgd::Dict{String, LittleGroup{D}},
-            polarization::Union{Symbol, Nothing} = nothing) where D
+    symeigsd::Dict{String, Vector{Vector{ComplexF64}}}, # ← mutated by call
+    lgd::Dict{String, LittleGroup{D}},
+    polarization::Union{Symbol, Nothing} = nothing
+) where D
 
     return fixup_gamma_symmetry!(symeigsd, lgd["Γ"], polarization)
 end
@@ -238,12 +242,12 @@ The required irrep data `bandirsd` can be extracted by
 [`extract_individual_multiplicities`](@ref).
 """
 function extract_candidate_symmetryvectors(
-            bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Vector{Int}}}},
-            lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}},
-            brs=nothing;
-            permd::Dict{String, Vector{Int}}=_default_permutation(lgirsd, brs),
-            latestarts::Dict{String, Int}=Dict("Γ" => D)
-            ) where D
+    bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Vector{Int}}}},
+    lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}},
+    brs::BandRepSet = nothing;
+    permd::Dict{String, Vector{Int}} = _default_permutation(lgirsd, brs),
+    latestarts::Union{Dict{String, Int}, Nothing} = nothing
+) where D
     
     klabs = keys(bandirsd)
     length(lgirsd) ≠ length(klabs) && error("missing k-point data")
@@ -291,13 +295,17 @@ julia> all([label.(lgirsd[klab]) == irreplabels(brs)[idxs] for (klab, idxs) in p
 true
 ```
 """
-function find_permutation(lgirsd::Dict{String, <:AbstractVector{<:LGIrrep}}, brs::BandRepSet)
+function find_permutation(
+    lgirsd::Dict{String, <:AbstractVector{<:LGIrrep}}, 
+    brs::BandRepSet
+)
     return find_permutation(lgirsd, klabels(brs), irreplabels(brs))
 end
 function find_permutation(
-            lgirsd::Dict{String, <:AbstractVector{<:LGIrrep}},
-            klabs::Vector{String},
-            irlabs::Vector{String})
+    lgirsd::Dict{String, <:AbstractVector{<:LGIrrep}},
+    klabs::Vector{String},
+    irlabs::Vector{String}
+)
     # find permutation vectors between irreps in `lgirsd` and those in `irlabs` and `klabs`;
     # used to ensure alignment between sorting of symmetry vectors and band representations
     # since the alignment in `lgirsd` and e.g. `bandreps(...)` may differ
@@ -315,8 +323,9 @@ function find_permutation(
 end
 
 function _default_permutation(
-            lgirsd::Dict{String, <:AbstractVector{<:LGIrrep}},
-            brs::Union{Nothing, BandRepSet})
+    lgirsd::Dict{String, <:AbstractVector{<:LGIrrep}},
+    brs::Union{Nothing, BandRepSet}
+)
     brs === nothing && error("must supply either `brs` or `permd`")
     return find_permutation(lgirsd, brs)
 end
@@ -340,13 +349,15 @@ an MPB symmetry calculation with ID `calcname`.
 - `flip_ksign` (default, `false`): flip the sign of the **k**-vector used in the MPB 
   calculation; can be necessary to match phase conventions in Crystalline.jl.
 """
-function read_symdata(calcname::AbstractString; 
-            sgnum::Union{Int, Nothing}=nothing,
-            D::Union{Int, Nothing}=nothing,
-            dir::AbstractString=".", 
-            αβγ::AbstractVector{<:Real}=TEST_αβγ,
-            isprimitive::Bool=true,
-            flip_ksign::Bool=false)
+function read_symdata(
+    calcname::AbstractString; 
+    sgnum::Union{Int, Nothing} = nothing,
+    D::Union{Int, Nothing} = nothing,
+    dir::AbstractString = ".", 
+    αβγ::AbstractVector{<:Real} = TEST_αβγ,
+    isprimitive::Bool = true,
+    flip_ksign::Bool = false
+)
 
     sgnum === nothing && (sgnum = parse_sgnum(calcname))
     D === nothing     && (D = parse_dim(calcname))
@@ -356,9 +367,15 @@ function read_symdata(calcname::AbstractString;
 end
 
 # function barrier cf. type-instability
-function _read_symdata(calcname::AbstractString, sgnum::Int, Dᵛ::Val{D},
-            dir::AbstractString, αβγ::AbstractVector{<:Real},
-            isprimitive::Bool, flip_ksign::Bool) where D
+function _read_symdata(
+    calcname::AbstractString, 
+    sgnum::Int, 
+    Dᵛ::Val{D},
+    dir::AbstractString, 
+    αβγ::AbstractVector{<:Real},
+    isprimitive::Bool, 
+    flip_ksign::Bool
+) where D
     
     # prepare default little groups of associated space group
     lgs⁰  = littlegroups(sgnum, Dᵛ)
@@ -406,9 +423,13 @@ end
 # ---------------------------------------------------------------------------------------- #
 
 
-function symeigs2irreps(symeigs::AbstractVector, lgirs::AbstractVector{LGIrrep{D}}, bands;
-            αβγ::AbstractVector{<:Real}=TEST_αβγ, kwargs...) where D
-                                                                        # ... root accessor
+function symeigs2irreps( # ... root accessor
+    symeigs::AbstractVector,
+    lgirs::AbstractVector{LGIrrep{D}},
+    bands;
+    αβγ::AbstractVector{<:Real} = TEST_αβγ,
+    kwargs...) where D
+                                                                        
     D < length(αβγ) && (αβγ = αβγ[1:D])
     
     # return multiplicities over provided irreps (and across `bands`)
@@ -447,10 +468,12 @@ julia> bands = 1:5
 julia> extract_multiplicities(symeigsd, lgirsd, bands)
 ```
 """
-function extract_multiplicities(symeigsd::Dict{String,<:Any}, 
-            lgirsd::Dict{String,<:AbstractVector{LGIrrep{D}}},
-            bands=eachindex(first(values(symeigsd)));
-            kwargs...) where D                                  # ... main accessor
+function extract_multiplicities( # ... main accessor
+    symeigsd::Dict{String,<:Any},
+    lgirsd::Dict{String,<:AbstractVector{LGIrrep{D}}},
+    bands=eachindex(first(values(symeigsd)));
+    kwargs...
+) where D
 
     nd = Dict{String, Union{Nothing, Vector{Float64}}}()
     for klab in keys(symeigsd)
@@ -498,11 +521,14 @@ julia> extract_multiplicities(symeigsd, lgd, 1:5)
 where we consider the joint multiplicities of the first 5 bands. See also 
 [`extract_individual_multiplicities`](@ref).
 """
-function extract_multiplicities(symeigsd::Dict{String, <:Any}, 
-            lgd::Dict{String,LittleGroup{D}}, 
-            bands=eachindex(first(values(symeigsd)));
-            timereversal::Bool=true, isprimitive::Bool=true,
-            kwargs...) where D                                  # ... main accessor
+function extract_multiplicities( # ... main accessor
+    symeigsd::Dict{String, <:Any},
+    lgd::Dict{String,LittleGroup{D}},
+    bands=eachindex(first(values(symeigsd)));
+    timereversal::Bool=true,
+    isprimitive::Bool=true,
+    kwargs...
+) where D
 
     if length(symeigsd) ≠ length(lgd) || !(keys(symeigsd) ⊆ keys(lgd))
         error("`symeigsd` and `lgd` must have identical keys")
@@ -513,10 +539,14 @@ function extract_multiplicities(symeigsd::Dict{String, <:Any},
     return extract_multiplicities(symeigsd, lgirsd, bands; kwargs...)
 end
 
-function extract_multiplicities(calcname::String, bands;
-            timereversal::Bool=true, isprimitive::Bool=true,
-            atol::Real=MULTIPLICITY_ATOL, αβγ::AbstractVector{<:Real}=TEST_αβγ,
-            read_kwargs...)                                     # ... convenience accessor
+function extract_multiplicities( # ... convenience accessor
+    calcname::String,
+    bands;
+    timereversal::Bool=true,
+    isprimitive::Bool=true,
+    atol::Real = MULTIPLICITY_ATOL,
+    αβγ::AbstractVector{<:Real} = TEST_αβγ,
+    read_kwargs...) 
     
     symeigsd, lgd = read_symdata(calcname; αβγ, isprimitive, read_kwargs...)
     return extract_multiplicities(symeigsd, lgd, bands; timereversal, isprimitive, atol, αβγ)
@@ -524,8 +554,11 @@ end
 
 # ---------------------------------------------------------------------------------------- #
 
-function pick_lgirreps(lgd::Dict{String, LittleGroup{D}};
-            timereversal::Bool=true, isprimitive::Bool=true) where D
+function pick_lgirreps(
+    lgd::Dict{String, LittleGroup{D}};
+    timereversal::Bool=true,
+    isprimitive::Bool=true
+) where D
     sgnum = num(first(values(lgd)))
     lgirsd = lgirreps(sgnum, Val(D))
     # filter out k-points not in `lgd`
@@ -596,9 +629,9 @@ bands, see [`collect_separable`](@ref) and [`merge_to_symvectors`](@ref).
 
 - `latestarts` (default, `Dict("Γ" => D)`): allow user to specify that certain early bands
   be avoided for specific **k**-points. This is mainly useful to avoid considering the two
-  singular Γ-point bands in 3D photonic crystals (which is the default behavior). To skip 
-  nothing, set to `Dict{String,Int}()`. Defaults to the spatial dimension `D` at Γ
-  (meaning, start at band `D` and skip the first `D-1` bands at Γ).
+  singular Γ-point bands in 3D photonic crystals (which is the default behavior). For nonspecial
+  skips, set to `nothing`. Defaults to the spatial dimension `D` at Γ (meaning, start at
+  band `D` and skip the first `D-1` bands at Γ).
 - `timereversal` & `isprimitive`: forwarded to [`read_symdata`](@ref) and 
   [`extract_multiplicities`](@ref).
 - `atol` & `αβγ`: forwarded to [`find_individual_multiplicities`](@ref).
@@ -620,11 +653,15 @@ julia> Dict(klab => [bands => symvec2string(n, irlabs[klab]; braces=false)
                      for (bands, n) in bandirs]         for (klab, bandirs) in bandirsd)
 ```
 """
-function extract_individual_multiplicities(calcname::String;
-            timereversal::Bool=true, isprimitive::Bool=true,
-            atol::Real=MULTIPLICITY_ATOL, αβγ::AbstractVector{<:Real}=TEST_αβγ,
-            latestarts::Dict{String,Int}=Dict("Γ" => parse_dim(calcname)),
-            kwargs...)
+function extract_individual_multiplicities(
+    calcname::String;
+    timereversal::Bool = true,
+    isprimitive::Bool = true,
+    atol::Real = MULTIPLICITY_ATOL, 
+    αβγ::AbstractVector{<:Real} = TEST_αβγ,
+    latestarts::Dict{String,Int} = Dict("Γ" => parse_dim(calcname)),
+    kwargs...
+)
 
     symeigsd, lgd = read_symdata(calcname; αβγ, isprimitive, kwargs...)
     lgirsd = pick_lgirreps(lgd; timereversal, isprimitive)
@@ -642,31 +679,33 @@ Return a `Dict{String,Vector{Int}} of irrep multiplicities at each **k**-point f
 provided symmetry eigenvalues `symeigsd` and the little group irreps `lgirsd`.
 
 ## Keyword arguments
-- `atol`: absolute tolerance used in computing the irrep multiplicities. Forwarded to
-          Crystalline's `find_representation` and also used as a maximal allowable deviation
-          from computed floating point multiplicities to the associated nearest integer
-          values. Defaults to $MULTIPLICITY_ATOL.
-- `αβγ`: fractional parameters provided to any little group irreps with nonspecial
-         **k**-points.
-- `latestarts`: see description in [`extract_individual_multiplicities`]; defaults to
-                `Dict("Γ" => D)`.
-- `maxresnorm`: forwarded to Crystalline's `find_representation`. Maximum allowable residual
-                norm difference between provided symmetry eigenvalues and the symmetry
-                eigenvalues associated with the computed floating point multiplicities.
+- `atol` (default, `$MULTIPLICITY_ATOL``): absolute tolerance used in computing the irrep
+  multiplicities. Passed to [`find_representation`](@ref) and also used as a maximal
+  allowable deviation from computed floating point multiplicities to the associated nearest
+  integer values.
+- `αβγ` (default, `$TEST_αβγ``): fractional parameters provided to any little group irreps 
+  with nonspecial **k**-points.
+- `latestarts` (default, `nothing`): see description in
+  [`extract_individual_multiplicities`](@ref).
+- `maxresnorm` (default, `1e-2`): passsed to (`find_representation`](@ref). Maximum allowable residual
+   norm difference between provided symmetry eigenvalues and the symmetry eigenvalues
+   associated with the computed floating point multiplicities.
 """
-function find_individual_multiplicities(symeigsd::Dict{String, <:AbstractVector},
-            lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}};
-            atol::Real=MULTIPLICITY_ATOL,
-            αβγ::AbstractVector{<:Real}=TEST_αβγ,
-            latestarts::Dict{String,Int}=Dict("Γ" => D),
-            maxresnorm::Real=1e-2) where D
+function find_individual_multiplicities(
+    symeigsd::Dict{String, <:AbstractVector},
+    lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}};
+    atol::Real = MULTIPLICITY_ATOL,
+    αβγ::AbstractVector{<:Real} = TEST_αβγ,
+    latestarts::Union{Dict{String,Int}, Nothing} = nothing,
+    maxresnorm::Real = 1e-2
+) where D
     
     Nbands = length(first(values(symeigsd)))
 
     bandirsd = Dict(klab => Vector{Pair{UnitRange{Int}, Vector{Int}}}() for klab in keys(lgirsd))
     for (klab, lgirs) in lgirsd
         symeigs = symeigsd[klab]
-        start = stop = get(latestarts, klab, 1)
+        start = stop = isnothing(latestarts) ? 1 : get(latestarts, klab, 1)
         while stop ≤ Nbands
             bands = start:stop
             n = symeigs2irreps(symeigs, lgirs, bands; atol, αβγ, maxresnorm)
@@ -703,9 +742,11 @@ Return the "projected" symmetry-vectors for potentially separable bands using `b
 (see [`extract_individual_multiplicities`](@ref)) and `lgirsd` (see [`read_symdata`](@ref) 
 and [`pick_lgirreps`](@ref)).
 """
-function collect_separable(bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Vector{Int}}}},
-                lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}};
-                latestarts::Dict{String, Int}=Dict("Γ" => D)) where D
+function collect_separable(
+    bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Vector{Int}}}},
+    lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}};
+    latestarts::Union{Dict{String, Int}, Nothing}=nothing
+) where D
 
     # Check for empty values in bandirsd and return gracefully. Otherwise the mapreduce
     # line will throw an error.
@@ -723,7 +764,7 @@ function collect_separable(bandirsd::Dict{String, Vector{Pair{UnitRange{Int}, Ve
         stable = true
         for (klab, bandirs) in bandirsd
             idxs = include[klab]
-            latestart = get(latestarts, klab, nothing)
+            latestart = isnothing(latestarts) ? nothing : get(latestarts, klab, nothing)
             for (i, (bands, _)) in enumerate(bandirs)
                 minband, maxband = extrema(bands)
                 minband < start && continue
