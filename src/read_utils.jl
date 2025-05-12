@@ -659,7 +659,7 @@ function find_individual_multiplicities(symeigsd::Dict{String, <:AbstractVector}
             atol::Real=MULTIPLICITY_ATOL,
             αβγ::AbstractVector{<:Real}=TEST_αβγ,
             latestarts::Dict{String,Int}=Dict("Γ" => D),
-            maxresnorm::Real=1e-3) where D
+            maxresnorm::Real=1e-2) where D
     
     Nbands = length(first(values(symeigsd)))
 
@@ -671,8 +671,13 @@ function find_individual_multiplicities(symeigsd::Dict{String, <:AbstractVector}
             bands = start:stop
             n = symeigs2irreps(symeigs, lgirs, bands; atol, αβγ, maxresnorm)
             if n !== nothing
-                idxs = findall(nᵢ -> nᵢ > atol && abs(round(nᵢ) - nᵢ) < atol, n)
-                if length(idxs) ≥ 1
+                # check if at least one multiplicity is a nonzero near-integer (up to
+                # `atol`) and all other multiplcities are near-zero (also up to `atol`);
+                # equivalently, whether `n` is nearly an integer vector, and has at least
+                # one nonzero element
+                idxs = findall(nᵢ -> abs(nᵢ) > atol, n) # nonzero elements (allow negative)
+                if (!isempty(idxs) && # at least one nonzero multiplicity
+                    all(nᵢ -> abs(round(nᵢ) - nᵢ) < atol, n)) # all mults. are near-integer
                     # `bands` makes up a valid whole-multiple irrep combination at `klab`
                     # we emphasize that this can be a _combination_ i.e. multiple whole
                     # irreps; this can arise in cases of near-degeneracies, where numerical
