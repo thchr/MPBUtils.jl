@@ -40,13 +40,4 @@ export read_symdata, extract_multiplicities, extract_individual_multiplicities,
 
 # ---------------------------------------------------------------------------------------- #
 
-function __init__()
-    # plotting utitilities when PyPlot is loaded
-    @require PyPlot="d330b81b-6aea-500a-939a-2ce795aea3ee" begin  
-        include("compat/pyplot.jl")
-        export plot_lattice_from_mpbparams
-    end
-end
-
-# ---------------------------------------------------------------------------------------- #
-end
+end # module MPBUtils
