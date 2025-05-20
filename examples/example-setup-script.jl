@@ -4,30 +4,25 @@ write_dir = (@__DIR__)*"" # NB: make sure whatever directory this points to actu
 
 function init_lattice(sgnum, Dᵛ::Val{D}, cntr::Char;
                 maxGs=ntuple(_->2, Val(D)), expon::Real=1.25) where D
-
     # level-set surface
     flat = normscale!(modulate(levelsetlattice(sgnum, Dᵛ, maxGs)), expon)
     deleteat!(flat.orbits, 1), deleteat!(flat.orbitcoefs, 1) # trivial constant G=0 term
 
-    # make lattice primitivize
-    pflat = primitivize(flat, cntr)
-
-    return pflat
+    return  primitivize(flat, cntr) # return a primitive lattice
 end
 
 # --- choices ---
-sgnum = 68    # space group number
-D = 3         # dimension
-cntr = centering(sgnum, D) # centering symbol (e.g, 'F' for face-centered, etc.)
 write_to_file = true
-has_tr = true # whether we have time-reversal or not
-res = 32      # resolution used in MPB
-nbands = 12   # number of bands requested from MPB
+D = 3       # dimension
+sgnum = 68  # space group number
+tr = true   # whether we have time-reversal or not
+cntr = centering(sgnum, D) # centering symbol (e.g, 'F' for face-centered, etc.)
+res = 32    # resolution used in MPB
+nbands = 12 # number of bands requested from MPB
 
 # --- find out which little groups we need to assess bandreps/symmetry vector ---
-brs  = bandreps(sgnum, D, timereversal=has_tr)
-lgs  = Crystalline.matching_littlegroups(brs, Val(D))
-plgs = primitivize.(lgs, #=modw=# false)
+brs = primitivize(calc_bandreps(sgnum, D, timereversal=tr))
+lgs = group.(irreps(brs))
 
 # --- generate a bunch of mpb-input files ---
 ids = 1:10 # create 10 different lattices and "input-files"
@@ -51,7 +46,7 @@ for id in ids
     write_to_file || continue
     open(filepath, "w") do io
         prepare_mpbcalc!(io, sgnum, pflat, pRs, filling, epsin, epsout, runtype;
-                             res=res, lgs=plgs, id=id, nbands=nbands)
+                             res=res, lgs=lgs, id=id, nbands=nbands)
         # NB: if you want an mpb dispersion calculation, provide a keyword argument `kvs`
         #     instead of `lgs` in the above. You can also supply a filename for `kvs` if
         #     you want.

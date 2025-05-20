@@ -2,15 +2,16 @@ module MPBUtils
 # ---------------------------------------------------------------------------------------- #
 
 using Crystalline
-using Crystalline: AbstractFourierLattice,
-                   TEST_αβγ
+using Crystalline: AbstractFourierLattice, find_multiplicities # internals
+using Crystalline: TEST_αβγ # default value for setting free k-vector parameters `αβγ`
+
+# ---------------------------------------------------------------------------------------- #
+
 using StaticArrays
-using SymmetryBases
-using Statistics: quantile # for `filling2isoval`
 using DocStringExtensions
-using Requires
 using DelimitedFiles
 using LinearAlgebra
+import SymmetryBases # only used for `calc_detailed_topology`
 
 # ---------------------------------------------------------------------------------------- #
 
@@ -19,24 +20,21 @@ export prepare_mpbcalc,
        mpb_calcname,
        write_lgs_to_mpb!,
        lattice_from_mpbparams,
-       kvecs_from_mpbparams,
-       filling2isoval,
-       isoval2filling,
-       extract_candidate_symmetryvectors,
-       analyze_symmetry_data,
-       fixup_gamma_symmetry!,
-       BandSummary
+       kvecs_from_mpbparams
+export read_symdata,
+       extract_multiplicities,
+       extract_all_multiplicities
+export fixup_gamma_symmetry!
+export BandSummary,
+       detailed_symeigs_analysis
 
 # ---------------------------------------------------------------------------------------- #
 
-const MULTIPLICITY_ATOL = 2e-2 # allow up to 2% error in irrep multiplicity by default
-
 include("utils.jl")
-include("filling2isoval.jl")
 include("export2mpb.jl")
+include("bandsummary.jl")
+include("photonic_symeig_utils.jl")
 include("read_utils.jl")
-export read_symdata, extract_multiplicities, extract_individual_multiplicities,
-       collect_separable, pick_lgirreps
 
 # ---------------------------------------------------------------------------------------- #
 
