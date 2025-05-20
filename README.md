@@ -4,18 +4,17 @@ MPBUtils.jl interfaces with [Crystalline.jl](https://github.com/thchr/Crystallin
 
 ## Installation
 
-The package is not presently registered (and may well change its name in the future). To install it, go to Julia's `pkg>` prompt (by pressing `]`) and type:
+This package is not presently registered (and may well change its name in the future). To install it, go to Julia's `pkg>` prompt (by pressing `]`) and type:
 ```jl
-pkg> add https://github.com/thchr/SymmetryBases.jl
-pkg> add https://github.com/thchr/MPBUtils.jl
+pkg> dev https://github.com/thchr/MPBUtils.jl
 ```
-[SymmetryBases.jl](https://github.com/thchr/SymmetryBases.jl) is a dependency of MPBUtils.jl (which also not registered, and so also requires manual installation).
+[SymmetryBases.jl](https://github.com/thchr/SymmetryBases.jl) is a dependency of MPBUtils.jl (which also not registered); by `dev`ing (rather than `add`ing), it will also be automatically installed.
 
 ## Functionality
 
 The package at present contains two sets of distinct utilities:
 
-1. Utilities to perform band symmetry analysis of photonic structures, assuming the ability to compute the symmetry eigenvalues of the associated photonic band structure (MPB e.g. has this capability).
+1. Utilities to facilitate the symmetry-based topological analysis of photonic crystals, relying on tools in [Crystalline.jl](https://github.com/thchr/Crystalline.jl) in combination with [mpb](https://github.com/NanoComp/mpb)'s ability to compute the symmetry eigenvalues of the photonic band structure.
 2. Exportation and importation of Guile parseable job scripts for [mpb](https://github.com/NanoComp/mpb)'s .ctl interface. This utility is subject to future removal as its effective use requires `.ctl` files that are not included in this repository.
 
 We describe the utilities in point 1 by example below.
