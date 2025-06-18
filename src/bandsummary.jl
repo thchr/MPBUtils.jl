@@ -87,18 +87,18 @@ end
 """
 $(TYPEDSIGNATURES)
 
-An extended variant of Crystalline's `symeigs_analysis`, which additionally performs a
+An extended variant of Crystalline's `collect_compatible`, which additionally performs a
 symmetry-indicator/TQC-based topological analysis for each band, returning a vector of
 `BandSummaries{D}` with the associated information.
 """
-function detailed_symeigs_analysis(
+function collect_compatible_detailed(
     symeigsv::AbstractVector{Vector{Vector{ComplexF64}}},
     brs::Collection{NewBandRep{D}},
     B::AbstractMatrix{<:Integer} = stack(brs),
     F::Smith{<:Integer} = smith(B);
     kws...
 ) where D
-    ns = symeigs_analysis(symeigsv, brs, F; kws...) # get symmetry vectors
+    ns = collect_compatible(symeigsv, brs, F; kws...) # get symmetry vectors
     b = 1
     summaries = Vector{BandSummary{D}}(undef, length(ns))
     inds_group = indicator_group(brs)

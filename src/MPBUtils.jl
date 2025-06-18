@@ -15,18 +15,25 @@ import SymmetryBases # only used for `calc_detailed_topology`
 
 # ---------------------------------------------------------------------------------------- #
 
-export prepare_mpbcalc,
-       prepare_mpbcalc!,
-       mpb_calcname,
-       write_lgs_to_mpb!,
-       lattice_from_mpbparams,
-       kvecs_from_mpbparams
-export read_symdata,
-       extract_multiplicities,
-       extract_all_multiplicities
+export prepare_mpbcalc
+export prepare_mpbcalc!
+export mpb_calcname
+export write_lgs_to_mpb!
+export lattice_from_mpbparams
+export kvecs_from_mpbparams
+
+export read_symdata
+export extract_multiplicities
+export extract_all_multiplicities
+
 export fixup_gamma_symmetry!
-export BandSummary,
-       detailed_symeigs_analysis
+
+export BandSummary
+export collect_compatible_detailed
+
+# ---------------------------------------------------------------------------------------- #
+
+@deprecate detailed_symeigs_analysis collect_compatible_detailed
 
 # ---------------------------------------------------------------------------------------- #
 
