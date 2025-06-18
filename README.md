@@ -93,7 +93,7 @@ fixup_gamma_symmetry!(symeigsv, lgirsv, :TM) # must specify polarization (:TE or
 Finally, we use the elementary band representations and little group irreps to analyze the symmetry eigenvalue data `symeigsv`, extracting the associated band connectivity and band topology of the separable bands in our calculation:
 ```jl
 # --- analyze connectivity and topology of symmetry data ---
-summaries = detailed_symeigs_analysis(symeigsv, brs)
+summaries = collect_compatible_detailed(symeigsv, brs)
 ```
 
 For the above structure, this returns the following vector of `BandSummary`s:
@@ -183,7 +183,7 @@ end
 fixup_gamma_symmetry!(symeigsv, lgirsv)
 
 # --- analyze connectivity and topology of symmetry data ---
-summaries = detailed_symeigs_analysis(symeigsv, brs)
+summaries = collect_compatible_detailed(symeigsv, brs)
 ```
 
 Producing the result:
