@@ -28,12 +28,10 @@ MPBUtils.jl provides a set of convenience tools to initialize and process symmet
 First, we make the [mpb](https://github.com/NanoComp/mpb) python interface accessible via Julia and also load the Crystalline.jl and MPBUtils.jl packages:
 ```jl
 # --- load relevant packages ---
-using Crystalline, MPBUtils
-using PythonCall # use CondaPkg.jl to add meep & mpb (provided by "pymeep") if not already installed
-mp = pyimport("meep")
-mpb = pyimport("meep.mpb")
+using Crystalline
+using MPBUtils
 ```
-Note that, in order to compute symmetry eigenvalues via [mpb](https://github.com/NanoComp/mpb)'s  python interface, a relatively recent version of [meep](https://github.com/NanoComp/meep) (≥v1.23.0) is required.
+Note that loading MPBUtils also automatically loads (and installs, via CondaPkg.jl and PythonCall.jl) [mpb](https://github.com/NanoComp/mpb) (exported as `mpb`) and meep [meep](https://github.com/NanoComp/meep) (exported as `mp`).
 
 Then we initialize a 2D photonic crystal calculation:
 ```jl
@@ -61,36 +59,18 @@ lgirsv = irreps(brs)                            # small irreps & little groups a
 We take care above to convert the internally referenced little groups of `brs` to a primitive setting (via `primitivize`), since `calc_bandreps` (and indeed, all other accessors in Crystalline) by default returns operations in a _conventional_ setting; when we consider the symmetry eigenvalues, however, we must work in a _primitive_ setting since our computational unit cell also will be a primitive one. That is, the operations and **k**-points used when calculating symmetry eigenvalues must refer to the same setting as used in the associated unit cell; to avoid redundant band folding, this should be a _primitive_ unit cell.
 The reduction step is actually redundant in plane group 10 (p4), as its conventional setting is already primitive. However, we stress it here to emphasize that this is necessary in the general case (for centered Bravais lattices).
 
-Next, using [mpb](https://github.com/NanoComp/mpb), we compute the relevant symmetry eigenvalues of the photonic band structure at each of the **k**-points featured in `brs`, `lgs`, and `lgirsv`:
+Next, using [mpb](https://github.com/NanoComp/mpb), we compute the relevant symmetry eigenvalues of the photonic band structure at each of the **k**-points featured in `brs` and `lgirsv`:
 ```jl
 # --- compute band symmetry data ---
 # symmetry eigenvalues ⟨Eₙₖ|gᵢDₙₖ⟩, indexed over k-labels `klab`, band indices `n`, and
 # operations `gᵢ` (index `i`)
-symeigsv = Vector{Vector{Vector{ComplexF64}}}(undef, length(lgirsv)) # symmetry eigenvalues ⟨Eₙₖ|gᵢDₙₖ⟩
-for (kidx, lgirs) in enumerate(lgirsv)
-    lg = group(lgirs)
-    kv = mp.Vector3(position(lg)()...)
-    ms.solve_kpoint(kv)
-
-    symeigsv[kidx] = [Vector{ComplexF64}(undef, length(lg)) for n in 1:pyconvert(Int, ms.num_bands)]
-    for (i, gᵢ) in enumerate(lg)
-        W = mp.Matrix(eachcol(rotation(gᵢ))..., [0,0,1]) # decompose gᵢ = {W|w}
-        w = mp.Vector3(translation(gᵢ)...)
-        symeigs = ms.compute_symmetries(W, w) # compute ⟨Eₙₖ|gᵢDₙₖ⟩ for all bands
-        symeigs = pyconvert(Vector{ComplexF64}, symeigs) # convert from Python types to Julia types
-        setindex!.(symeigsv[kidx], symeigs, i) # update container of symmetry eigenvalues
-    end
-end
+symeigsv = compute_symmetry_eigenvalues(ms, lgirsv, :TM)
 ```
 
 Because the photonic band structure is singular at zero frequency, [mpb](https://github.com/NanoComp/mpb) will not generally be able to assign the appropriate symmetry eigenvalue at (**k** = Γ, ω = 0).
-To correct for this, we use MPBUtils.jl's `fixup_gamma_symmetry!` on our symmetry eigenvalue data `symeigsv`:
-```jl
-# --- fix singular photonic symmetry content at Γ, ω=0 ---
-fixup_gamma_symmetry!(symeigsv, lgirsv, :TM) # must specify polarization (:TE or :TM) for `D=2`
-```
+To correct for this, `compute_symmetry_eigenvalues` must calls MPBUtil.jl's `fixup_gamma_symmetry!` on the MPB-returned symmetry eigenvalue data before returning. In 2D, this requires that we specify the polarization (`:TE` or `:TM`), because this correction is polarization-dependent. In 3D, the correction can be made solely on the basis of the space group.
 
-Finally, we use the elementary band representations and little group irreps to analyze the symmetry eigenvalue data `symeigsv`, extracting the associated band connectivity and band topology of the separable bands in our calculation:
+Finally, we use the band representations (and little group irreps implicitly referenced by them) to analyze the symmetry eigenvalue data `symeigsv`, extracting the associated band connectivity and band topology of the separable bands in our calculation:
 ```jl
 # --- analyze connectivity and topology of symmetry data ---
 summaries = collect_compatible_detailed(symeigsv, brs)
@@ -134,10 +114,8 @@ As an example, the following scripts sets up a photonic crystal calculation with
 
 ```jl
 # --- load relevant packages ---
-using Crystalline, MPBUtils
-using PythonCall
-mp = pyimport("meep")
-mpb = pyimport("meep.mpb")
+using Crystalline
+using MPBUtils
 
 # --- mpb: geometry & solver initialization ---
 r = 0.15
@@ -161,26 +139,7 @@ brs = primitivize(calc_bandreps(sgnum, Val(D))) # elementary band representation
 lgirsv = irreps(brs)                            # associated little groups & small irreps
 
 # --- compute band symmetry data ---
-# symmetry eigenvalues ⟨Eₙₖ|gᵢDₙₖ⟩, indexed over k-labels `klab`, band indices `n`, and
-# operations `gᵢ` (index `i`)
-symeigsv = Vector{Vector{Vector{ComplexF64}}}(undef, length(lgirsv)) # symmetry eigenvalues ⟨Eₙₖ|gᵢDₙₖ⟩
-for (kidx, lgirs) in enumerate(lgirsv)
-    lg = group(lgirs)
-    kv = mp.Vector3(position(lg)()...)
-    ms.solve_kpoint(kv)
-
-    symeigsv[kidx] = [Vector{ComplexF64}(undef, length(lg)) for n in 1:pyconvert(Int, ms.num_bands)]
-    for (i, gᵢ) in enumerate(lg)
-        W = mp.Matrix(eachcol(rotation(gᵢ))...) # decompose gᵢ = {W|w}
-        w = mp.Vector3(translation(gᵢ)...)
-        symeigs = ms.compute_symmetries(W, w) # compute ⟨Eₙₖ|gᵢDₙₖ⟩ for all bands
-        symeigs = pyconvert(Vector{ComplexF64}, symeigs) # convert from Python types to Julia types
-        setindex!.(symeigsv[kidx], symeigs, i) # update container of symmetry eigenvalues
-    end
-end
-
-# --- fix singular photonic symmetry content at Γ, ω=0 ---
-fixup_gamma_symmetry!(symeigsv, lgirsv)
+symeigsv = compute_symmetry_eigenvalues(ms, lgirsv) # symmetry eigenvalues ⟨Eₙₖ|gᵢDₙₖ⟩
 
 # --- analyze connectivity and topology of symmetry data ---
 summaries = collect_compatible_detailed(symeigsv, brs)

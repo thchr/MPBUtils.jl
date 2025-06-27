@@ -5,7 +5,7 @@ A summary of the band symmetry and topology of a set of bands. `BandSummary`s of
 bands can be added, corresponding to stacking of bands.
 """
 struct BandSummary{D} <: Crystalline.AbstractSymmetryVector{D}
-    topology        :: SymmetryBases.TopologyKind
+    topology        :: Crystalline.TopologyKind
     bands           :: UnitRange{Int}
     n               :: SymmetryVector{D}
     brs             :: Collection{NewBandRep{D}}

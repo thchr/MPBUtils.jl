@@ -73,3 +73,64 @@ function fixup_gamma_symmetry!(
     end
     return symeigsv
 end
+
+"""
+    compute_symmetry_eigenvalues(ms, lgirsv[, polarization])
+
+Given `ms`, an MPB `ModeSolver` `Py` object, and a vector of little group irrep tables,
+`lgirsv`, sampled across distinct high-symmetry **k**-points, return the symmetry
+eigenvalues across these little groups for the photonic bands returned by invoking `ms`.
+
+The return value `symeigsv` is a triply nested `Vector`, whose elements
+`symeigsv[kidx][n][i]` give the symmetry eigenvalue (or character) ⟨Eₙₖ|gᵢDₙₖ⟩ of the `n`th
+band, for the `i`th little group operation gᵢ, in the `kidx`th little group (corresponding
+to `group(lgirsv[kidx])`).
+
+It is assumed that the `D-1` lowest frequency Γ point bands are zero-frequency solutions,
+whose symmetry eigenvalues require manual correction. For 2D calculations, this correction
+requires specification of the `polarization` argument (`:TE` or `:TM`). See also 
+[`fixup_gamma_symmetry!`](@ref).
+"""
+function compute_symmetry_eigenvalues(
+    ms::Py,
+    lgirsv::AbstractVector{Collection{LGIrrep{D}}},
+    polarization::Union{Nothing, Symbol} = nothing
+) where D
+    # compute and store symmetry eigenvalues ⟨Eₙₖ|gᵢDₙₖ⟩ in `symeigsv[kidx][n][i]`, indexing
+    # into the `kidx´th little group (i.e., `lgirsv[kidx]`), the `n`th band index, and the 
+    #`i`th operation (i.e., `group(lgirsv)[i]`)
+    symeigsv = Vector{Vector{Vector{ComplexF64}}}(undef, length(lgirsv))
+    N = pyconvert(Int, ms.num_bands)
+    for (kidx, lgirs) in enumerate(lgirsv)
+        lg = group(lgirs)
+        kv = mp.Vector3(position(lg)()...)
+
+        redirect_stdout(devnull) do # mute mpb's output
+            ms.solve_kpoint(kv)
+        end
+
+        symeigsv[kidx] = [Vector{ComplexF64}(undef, length(lg)) for _ in 1:N]
+        for (i, gᵢ) in enumerate(lg)
+            # decompose gᵢ = {W|w}
+            _W = rotation(gᵢ)
+            W = if D == 3
+                mp.Matrix(_W[:,1], _W[:,2], _W[:,3])
+            elseif D == 2
+                mp.Matrix(_W[:,1], _W[:,2], SVector(0.0, 0.0, 1.0))
+            else # D == 1
+                mp.Matrix(_W[:,1], SVector{3}(0.0, 1.0, 0.0), SVector(0.0, 0.0, 1.0))
+            end
+            w = mp.Vector3(translation(gᵢ)...)
+            symeigs = ms.compute_symmetries(W, w) # compute ⟨Eₙₖ|gᵢDₙₖ⟩ for all bands
+            symeigs = pyconvert(Vector{ComplexF64}, symeigs) # convert Python to Julia types
+            for (n, symeig) in enumerate(symeigs) # add to symeigs container
+                symeigsv[kidx][n][i] = symeig
+            end
+        end
+    end
+
+    # --- fix singular photonic symmetry content at Γ, ω=0 ---
+    fixup_gamma_symmetry!(symeigsv, lgirsv, polarization)
+
+    return symeigsv
+end
