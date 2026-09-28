@@ -1,6 +1,5 @@
-using MPBUtils
 using Test
 
 @testset "MPBUtils.jl" begin
-    # write tests here
+    include("bandsummary.jl")
 end

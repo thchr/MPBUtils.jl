@@ -17,7 +17,6 @@ end
 # AbstractSymmetryVector interface
 
 Crystalline.SymmetryVector(bs::BandSummary) = bs.n
-Base.size(bs::BandSummary) = size(bs.bands)
 
 # ---------------------------------------------------------------------------------------- #
 # arithmetic
