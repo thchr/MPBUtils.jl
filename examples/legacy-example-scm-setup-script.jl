@@ -1,3 +1,14 @@
+# ---------------------------------------------------------------------------------------- #
+# ⚠ LEGACY EXAMPLE — kept for archival purposes; not a suggested usage pattern
+#
+# This writes MPB input files (`.sh`) that are then run separately, outside Julia; the
+# output is read back in by `legacy-process-symeigs-from-data.jl`. Running those files
+# requires the Scheme (`.ctl`) infrastructure that accompanied this workflow, which is not
+# distributed with MPBUtils, so this script is not usable as-is.
+#
+# For new work, drive MPB directly from Julia instead; see `inverse-opal.jl` and the README.
+# ---------------------------------------------------------------------------------------- #
+
 using Crystalline
 using MPBUtils
 write_dir = (@__DIR__)*"" # NB: make sure whatever directory this points to actually exists
