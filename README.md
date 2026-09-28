@@ -52,11 +52,11 @@ This structure has the symmetry of [plane group 10 (p4)](https://www.cryst.ehu.e
 ```jl
 # --- band representations, littlegroups, & irreps ---
 D, sgnum = 2, 10 # dimension and plane group (p4, with Z₂ indicator group)
-brs = primitivize(calc_bandreps(sgnum, Val(D))) # elementary band representations
-lgirsv = irreps(brs)                            # small irreps & little groups assoc. w/ `brs`
+brs = primitivize(bandreps(sgnum, Val(D))) # elementary band representations
+lgirsv = irreps(brs)                       # small irreps & little groups assoc. w/ `brs`
 ```
 
-We take care above to convert the internally referenced little groups of `brs` to a primitive setting (via `primitivize`), since `calc_bandreps` (and indeed, all other accessors in Crystalline) by default returns operations in a _conventional_ setting; when we consider the symmetry eigenvalues, however, we must work in a _primitive_ setting since our computational unit cell also will be a primitive one. That is, the operations and **k**-points used when calculating symmetry eigenvalues must refer to the same setting as used in the associated unit cell; to avoid redundant band folding, this should be a _primitive_ unit cell.
+We take care above to convert the internally referenced little groups of `brs` to a primitive setting (via `primitivize`), since `bandreps` (and indeed, all other accessors in Crystalline) by default returns operations in a _conventional_ setting; when we consider the symmetry eigenvalues, however, we must work in a _primitive_ setting since our computational unit cell also will be a primitive one. That is, the operations and **k**-points used when calculating symmetry eigenvalues must refer to the same setting as used in the associated unit cell; to avoid redundant band folding, this should be a _primitive_ unit cell.
 The reduction step is actually redundant in plane group 10 (p4), as its conventional setting is already primitive. However, we stress it here to emphasize that this is necessary in the general case (for centered Bravais lattices).
 
 Next, using [mpb](https://github.com/NanoComp/mpb), we compute the relevant symmetry eigenvalues of the photonic band structure at each of the **k**-points featured in `brs` and `lgirsv`:
@@ -134,9 +134,9 @@ ms = mpb.ModeSolver(
 ms.init_params(p=mp.ALL, reset_fields=true)
 
 # --- band representations, littlegroups, & irreps ---
-D, sgnum = 3, 81                                # P-4 (Z₂×Z₂ symmetry indicator group)
-brs = primitivize(calc_bandreps(sgnum, Val(D))) # elementary band representations
-lgirsv = irreps(brs)                            # associated little groups & small irreps
+D, sgnum = 3, 81                           # P-4 (Z₂×Z₂ symmetry indicator group)
+brs = primitivize(bandreps(sgnum, Val(D))) # elementary band representations
+lgirsv = irreps(brs)                       # associated little groups & small irreps
 
 # --- compute band symmetry data ---
 symeigsv = compute_symmetry_eigenvalues(ms, lgirsv) # symmetry eigenvalues ⟨Eₙₖ|gᵢDₙₖ⟩

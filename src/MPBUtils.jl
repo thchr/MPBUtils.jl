@@ -2,7 +2,8 @@ module MPBUtils
 # ---------------------------------------------------------------------------------------- #
 
 using Crystalline
-using Crystalline: AbstractFourierLattice, find_multiplicities # internals
+using Crystalline: AbstractFourierLattice, find_multiplicities, # internals
+                   MULTIPLICITY_ATOL
 using Crystalline: TEST_αβγ # default value for setting free k-vector parameters `αβγ`
 
 # ---------------------------------------------------------------------------------------- #

@@ -129,15 +129,15 @@ julia> extract_multiplicities(symeigsv, lgirsv, bands)
 ```
 """
 function extract_multiplicities( # ... main accessor
-    symeigsv::Dict{String,<:Any},
-    lgirsv::Dict{String,<:AbstractVector{LGIrrep{D}}},
-    bands::AbstractVector{Int}=eachindex(first(values(symeigsv)));
+    symeigsv::AbstractVector{<:AbstractVector{<:AbstractVector{<:Number}}},
+    lgirsv::AbstractVector{<:AbstractVector{LGIrrep{D}}},
+    bands::AbstractVector{Int}=eachindex(first(symeigsv));
     kwargs...
 ) where D
     if length(symeigsv) ≠ length(lgirsv)
-        throw(DimensionError("mismatched lengths of `symeigsv` and `lgirsv`"))
+        throw(DimensionMismatch("mismatched lengths of `symeigsv` and `lgirsv`"))
     end
-    multsv = Vector{Union{Nothing, Vector{Float64}}}(undef, length(symeigsv))
+    multsv = Vector{Union{Nothing, Vector{Int}}}(undef, length(symeigsv))
     for (kidx, (symeigs, lgirs)) in enumerate(zip(symeigsv, lgirsv))
         multsv[kidx] = find_representation(symeigs, lgirs, bands; kwargs...)
     end
@@ -186,7 +186,7 @@ where we consider the joint multiplicities of the first 5 bands. See also
 function extract_multiplicities( # ... main accessor
     symeigsv::AbstractVector,
     lgs::AbstractVector{LittleGroup{D}},
-    bands=eachindex(first(values(symeigsv)));
+    bands=eachindex(first(symeigsv));
     timereversal::Bool=true,
     isprimitive::Bool=true,
     kwargs...
