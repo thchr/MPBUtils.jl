@@ -1,14 +1,14 @@
 """
-    BandSummary{D} <: Crystalline.AbstractSymmetryVector{D}
+    BandSummary{D} <: Crystalline.AbstractSymmetryVector{D, LGIrrep{D}}
 
 A summary of the band symmetry and topology of a set of bands. `BandSummary`s of consecutive
 bands can be added, corresponding to stacking of bands.
 """
-struct BandSummary{D} <: Crystalline.AbstractSymmetryVector{D}
+struct BandSummary{D} <: Crystalline.AbstractSymmetryVector{D, LGIrrep{D}}
     topology        :: Crystalline.TopologyKind
     bands           :: UnitRange{Int}
-    n               :: SymmetryVector{D}
-    brs             :: Collection{NewBandRep{D}}
+    n               :: SymmetryVector{D, LGIrrep{D}}
+    brs             :: Collection{BandRep{D, LGIrrep{D}, SiteIrrep{D}}}
     indicators      :: Vector{Int}
     indicator_group :: Vector{Int}
 end
@@ -93,7 +93,7 @@ symmetry-indicator/TQC-based topological analysis for each band, returning a vec
 """
 function collect_compatible_detailed(
     symeigsv::AbstractVector{Vector{Vector{ComplexF64}}},
-    brs::Collection{NewBandRep{D}},
+    brs::Collection{BandRep{D, LGIrrep{D}, SiteIrrep{D}}},
     B::AbstractMatrix{<:Integer} = stack(brs),
     F::Smith{<:Integer} = smith(B);
     kws...

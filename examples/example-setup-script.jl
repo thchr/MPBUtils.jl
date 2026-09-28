@@ -21,7 +21,7 @@ res = 32    # resolution used in MPB
 nbands = 12 # number of bands requested from MPB
 
 # --- find out which little groups we need to assess bandreps/symmetry vector ---
-brs = primitivize(calc_bandreps(sgnum, D, timereversal=tr))
+brs = primitivize(bandreps(sgnum, D; timereversal=tr))
 lgs = group.(irreps(brs))
 
 # --- generate a bunch of mpb-input files ---

@@ -1,7 +1,7 @@
 name = "MPBUtils"
 uuid = "a5feb4ea-5495-4677-96f8-dddb76c9eb4c"
 authors = ["Thomas Christensen <tchr@mit.edu> and contributors"]
-version = "0.2.2"
+version = "0.3.0"
 
 [deps]
 Crystalline = "ae5e2be0-a263-11e9-351e-f94dad1eb351"
@@ -19,10 +19,10 @@ PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
 MPBUtilsPyPlotExt = "PyPlot"
 
 [compat]
-Crystalline = "0.6.18"
+Crystalline = "0.7"
 PythonCall = "0.9.24"
-SymmetryBases = "0.5"
-julia = "1.10"
+SymmetryBases = "0.6"
+julia = "1.12"
 
 [sources]
 SymmetryBases = {url="https://github.com/thchr/SymmetryBases.jl"}
