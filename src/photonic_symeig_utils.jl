@@ -129,6 +129,9 @@ function compute_symmetry_eigenvalues(
         end
     end
 
+    # --- convert from MPB's to Crystalline's Bloch phase convention ---
+    fixup_bloch_phases!(symeigsv, lgirsv)
+
     # --- fix singular photonic symmetry content at Γ, ω=0 ---
     fixup_gamma_symmetry!(symeigsv, lgirsv, polarization)
 

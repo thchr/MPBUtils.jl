@@ -70,6 +70,8 @@ symeigsv = compute_symmetry_eigenvalues(ms, lgirsv, :TM)
 Because the photonic band structure is singular at zero frequency, [mpb](https://github.com/NanoComp/mpb) will not generally be able to assign the appropriate symmetry eigenvalue at (**k** = Γ, ω = 0).
 To correct for this, `compute_symmetry_eigenvalues` must calls MPBUtil.jl's `fixup_gamma_symmetry!` on the MPB-returned symmetry eigenvalue data before returning. In 2D, this requires that we specify the polarization (`:TE` or `:TM`), because this correction is polarization-dependent. In 3D, the correction can be made solely on the basis of the space group.
 
+`compute_symmetry_eigenvalues` additionally automatically converts the MPB-returned symmetry eigenvalues from MPB's Bloch phase convention ($\mathrm{e}^{+\mathrm{i}\mathbf{k}\cdot\mathbf{r}}$) to the convention in Crystalline.jl's little group irreps (which assumes a Bloch phase $\mathrm{e}^{-\mathrm{i}\mathbf{k}\cdot\mathbf{r}}$), via `fixup_bloch_phases!`: the two associate opposite phases with the translation part of a symmetry operation, so that they disagree by $e^{4\pi \mathrm{i}\mathbf{k}\cdot\mathbf{w}}$ for an operation $\{R|\mathbf{w}\}$. The counter-intuitive phase convention of Crystalline.jl is consistent with the convention on the Bilbao Crystallographic Server (and also with the textbook by Inui et al.); the issue is tracked in [Crystalline issue #12](https://github.com/thchr/Crystalline.jl/issues/12).
+
 Finally, we use the band representations (and little group irreps implicitly referenced by them) to analyze the symmetry eigenvalue data `symeigsv`, extracting the associated band connectivity and band topology of the separable bands in our calculation:
 ```jl
 # --- analyze connectivity and topology of symmetry data ---

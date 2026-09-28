@@ -16,8 +16,9 @@ an MPB symmetry calculation with ID `calcname`.
 - `αβγ` (default, `$TEST_αβγ`): free-parameters used for **k**-vectors in setting up the
   MPB calculation in [`prepare_mpbcalc`](@ref).
 - `isprimitive` (default, `true`): whether the calculation is in a primitive setting.
-- `flip_ksign` (default, `false`): flip the sign of the **k**-vector used in the MPB 
-  calculation; can be necessary to match phase conventions in Crystalline.jl.
+
+The returned symmetry eigenvalues are converted from MPB's Bloch phase convention to that
+of Crystalline.jl's little group irreps; see [`fixup_bloch_phases!`](@ref).
 """
 function read_symdata(
     calcname::AbstractString; 
@@ -25,15 +26,14 @@ function read_symdata(
     D::Union{Int, Nothing} = nothing,
     dir::AbstractString = ".", 
     αβγ::AbstractVector{<:Real} = TEST_αβγ,
-    isprimitive::Bool = true,
-    flip_ksign::Bool = false
+    isprimitive::Bool = true
 )
 
     sgnum === nothing && (sgnum = parse_sgnum(calcname))
     D === nothing     && (D = parse_dim(calcname))
     D < length(αβγ)   && (αβγ = αβγ[1:D])
 
-    return _read_symdata(calcname, sgnum, Val(D), dir, αβγ, isprimitive, flip_ksign)
+    return _read_symdata(calcname, sgnum, Val(D), dir, αβγ, isprimitive)
 end
 
 # function barrier cf. type-instability
@@ -43,8 +43,7 @@ function _read_symdata(
     Dᵛ::Val{D},
     dir::AbstractString, 
     αβγ::AbstractVector{<:Real},
-    isprimitive::Bool, 
-    flip_ksign::Bool
+    isprimitive::Bool
 ) where D
     
     # prepare default little groups of associated space group
@@ -68,8 +67,7 @@ function _read_symdata(
     symeigsv = Vector{Vector{Vector{ComplexF64}}}(undef, Nk) # indexing: [kidx][band][op]
     rowidx = 1
     for kidx in 1:Nk
-        kv = flip_ksign ? -kvs[kidx] : kvs[kidx] # `flip_ksign` is a hack to work around 
-                                                 # phase convention issues; there be dragons
+        kv = kvs[kidx]
         klab = findfirst(lg->isapprox(position(lg)(αβγ), kv, atol=1e-6), lgs⁰)
         klab === nothing && error("could not find matching KVec for loaded kv = $kv")
         klabs[kidx]    = klab
@@ -89,6 +87,10 @@ function _read_symdata(
     lgs = map(zip(lgs_ops, klabs)) do (ops, klab)
         LittleGroup{D}(sgnum, position(lgs⁰[klab]), klab, ops)
     end
+
+    # MPB and Crystalline associate opposite phases with the translation parts of the
+    # little group operations: convert to Crystalline's convention
+    fixup_bloch_phases!(symeigsv, lgs, αβγ)
 
     return symeigsv, lgs
 end

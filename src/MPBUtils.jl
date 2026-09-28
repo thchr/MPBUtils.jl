@@ -48,6 +48,7 @@ export extract_multiplicities
 export extract_all_multiplicities
 
 export fixup_gamma_symmetry!
+export fixup_bloch_phases!
 export compute_symmetry_eigenvalues
 
 export BandSummary
@@ -62,6 +63,7 @@ export collect_compatible_detailed
 include("utils.jl")
 include("export2mpb.jl")
 include("bandsummary.jl")
+include("phase_conventions.jl")
 include("photonic_symeig_utils.jl")
 include("read_utils.jl")
 
