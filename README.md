@@ -82,11 +82,11 @@ For the above structure, this returns the following vector of `BandSummary`s:
 ```jl
 julia> summaries
 5-element Vector{BandSummary{2}}:
- [X₁, M₁, Γ₁] (1 band) trivial
- [3X₂, M₂+M₃M₄, Γ₁+Γ₃Γ₄] (3 bands) trivial
- [2X₁, M₃M₄, 2Γ₂] (2 bands) fragile
- [X₁, M₂, Γ₁] (1 band) nontrivial
- [X₁+X₂, M₁+M₂, Γ₃Γ₄] (2 bands) trivial
+ [Γ₁, M₁, X₁] (1 band) trivial
+ [Γ₁+Γ₃Γ₄, M₂+M₃M₄, 3X₂] (3 bands) trivial
+ [2Γ₂, M₃M₄, 2X₁] (2 bands) fragile
+ [Γ₁, M₂, X₁] (1 band) nontrivial
+ [Γ₃Γ₄, M₁+M₂, X₁+X₂] (2 bands) trivial
 ```
 
 Each band summary contains detailed information about the associated photonic bands. We can e.g., inspect the 4th band grouping in more detail:
@@ -94,17 +94,17 @@ Each band summary contains detailed information about the associated photonic ba
 julia> summaries[4]
 1-band BandSummary{2}:
  bands:      7:7
- n:          [X₁, M₂, Γ₁] (1 band)
+ n:          [Γ₁, M₂, X₁] (1 band)
  topology:   nontrivial
  indicators: 1 ∈ Z₂
 ```
 
 Adjacent bands can be "stacked" by addition. E.g., to evaluate the topology of the first three band groupings, we can evaluate:
 ```jl
-julia> summaries[1] + summaries[2] + summaries[3] # or simply, sum(summaries[1:3])
-6-band BandSummary:
+julia> summaries[1] + summaries[2] + summaries[3] # or simply, `sum(summaries[1:3])`
+6-band BandSummary{2}:
  bands:      1:6
- n:          3X₁+3X₂, M₁+M₂+2M₃M₄, 2Γ₁+2Γ₂+Γ₃Γ₄
+ n:          [2Γ₁+2Γ₂+Γ₃Γ₄, M₁+M₂+2M₃M₄, 3X₁+3X₂] (6 bands)
  topology:   trivial
 ```
 From which we see that the fragile bands in the 3rd band grouping are trivialized by the trivial bands in the 1st and 2nd band groupings.
@@ -151,11 +151,11 @@ Producing the result:
 ```jl
 julia> summaries
 5-element Vector{BandSummary{3}}:
- [Z₃Z₄, M₁+M₂, A₁+A₂, X₁+X₂, -Γ₁+Γ₂+Γ₃Γ₄, R₁+R₂] (2 bands) nontrivial
- [Z₃Z₄, M₃M₄, A₃A₄, X₁+X₂, Γ₃Γ₄, R₁+R₂] (2 bands) nontrivial
- [Z₁+Z₂+Z₃Z₄, M₁+M₂+M₃M₄, A₁+A₂+A₃A₄, 2X₁+2X₂, Γ₁+Γ₂+Γ₃Γ₄, 2R₁+2R₂] (4 bands) trivial
- [Z₂+Z₃Z₄, M₁+2M₂, 2A₁+A₂, X₁+2X₂, Γ₂+Γ₃Γ₄, R₁+2R₂] (3 bands) nontrivial
- [Z₁+Z₃Z₄, M₁+M₃M₄, A₂+A₃A₄, 2X₁+X₂, Γ₁+Γ₃Γ₄, 2R₁+R₂] (3 bands) nontrivial
+ [-Γ₁+Γ₂+Γ₃Γ₄, A₁+A₂, M₁+M₂, Z₃Z₄, R₁+R₂, X₁+X₂] (2 bands) nontrivial
+ [Γ₃Γ₄, A₃A₄, M₃M₄, Z₃Z₄, R₁+R₂, X₁+X₂] (2 bands) nontrivial
+ [Γ₁+Γ₂+Γ₃Γ₄, A₁+A₂+A₃A₄, M₁+M₂+M₃M₄, Z₁+Z₂+Z₃Z₄, 2R₁+2R₂, 2X₁+2X₂] (4 bands) trivial
+ [Γ₂+Γ₃Γ₄, 2A₁+A₂, M₁+2M₂, Z₂+Z₃Z₄, R₁+2R₂, X₁+2X₂] (3 bands) nontrivial
+ [Γ₁+Γ₃Γ₄, A₂+A₃A₄, M₁+M₃M₄, Z₁+Z₃Z₄, 2R₁+R₂, 2X₁+X₂] (3 bands) nontrivial
 ```
 
 ## Collaboration and how to cite
